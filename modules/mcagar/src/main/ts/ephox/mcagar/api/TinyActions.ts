@@ -1,25 +1,33 @@
-import { Keyboard } from '@ephox/agar';
-import { Element } from '@ephox/sugar';
-import { document } from '@ephox/dom-globals';
+import { Keyboard, Step } from '@ephox/agar';
+import { SugarElement, SugarShadowDom } from '@ephox/sugar';
+import { Editor } from '../alien/EditorTypes';
 
-export default function (editor) {
-  const iDoc = Element.fromDom(editor.getDoc());
-  const uiDoc = Element.fromDom(document);
+export interface TinyActions {
+  sContentKeydown: <T> (code: number, modifiers?: Record<string, any>) => Step<T, T>;
+  sContentKeystroke: <T> (code: number, modifiers?: Record<string, any>) => Step<T, T>;
+  sContentKeypress: <T> (code: number, modifiers?: Record<string, any>) => Step<T, T>;
 
-  const sContentKeydown = function (code: number, modifiers = {}) {
-    return Keyboard.sKeydown(iDoc, code, modifiers);
+  sUiKeydown: <T> (code: number, modifiers?: Record<string, any>) => Step<T, T>;
+}
+
+export const TinyActions = function (editor: Editor): TinyActions {
+  const iDoc = SugarElement.fromDom(editor.getDoc());
+  const uiDoc = SugarShadowDom.getRootNode(SugarElement.fromDom(editor.getElement()));
+
+  const sContentKeydown = function <T> (code: number, modifiers = {}) {
+    return Keyboard.sKeydown<T>(iDoc, code, modifiers);
   };
 
-  const sContentKeystroke = function (code: number, modifiers = {}) {
-    return Keyboard.sKeystroke(iDoc, code, modifiers);
+  const sContentKeystroke = function <T> (code: number, modifiers = {}) {
+    return Keyboard.sKeystroke<T>(iDoc, code, modifiers);
   };
 
-  const sContentKeypress = function (code: number, modifiers = {}) {
-    return Keyboard.sKeypress(iDoc, code, modifiers);
+  const sContentKeypress = function <T> (code: number, modifiers = {}) {
+    return Keyboard.sKeypress<T>(iDoc, code, modifiers);
   };
 
-  const sUiKeydown = function (code: number, modifiers = {}) {
-    return Keyboard.sKeydown(uiDoc, code, modifiers);
+  const sUiKeydown = function <T> (code: number, modifiers = {}) {
+    return Keyboard.sKeydown<T>(uiDoc, code, modifiers);
   };
 
   return {
@@ -29,4 +37,4 @@ export default function (editor) {
 
     sUiKeydown
   };
-}
+};

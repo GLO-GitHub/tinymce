@@ -5,8 +5,9 @@
  * For commercial licenses see https://www.tiny.cloud/
  */
 
-import Entities from './Entities';
+import { EntityEncoding } from '../SettingsTypes';
 import Tools from '../util/Tools';
+import Entities from './Entities';
 import { Attributes } from './Node';
 
 /**
@@ -27,7 +28,7 @@ const makeMap = Tools.makeMap;
 export interface WriterSettings {
   element_format?: 'xhtml' | 'html';
   entities?: string;
-  entity_encoding?: string;
+  entity_encoding?: EntityEncoding;
   indent?: boolean;
   indent_after?: string;
   indent_before?: string;
@@ -47,14 +48,13 @@ interface Writer {
 
 const Writer = function (settings?: WriterSettings): Writer {
   const html = [];
-  let indent, indentBefore, indentAfter, encode, htmlOutput;
 
   settings = settings || {};
-  indent = settings.indent;
-  indentBefore = makeMap(settings.indent_before || '');
-  indentAfter = makeMap(settings.indent_after || '');
-  encode = Entities.getEncodeFunc(settings.entity_encoding || 'raw', settings.entities);
-  htmlOutput = settings.element_format === 'html';
+  const indent = settings.indent;
+  const indentBefore = makeMap(settings.indent_before || '');
+  const indentAfter = makeMap(settings.indent_after || '');
+  const encode = Entities.getEncodeFunc(settings.entity_encoding || 'raw', settings.entities);
+  const htmlOutput = settings.element_format === 'html';
 
   return {
     /**
@@ -65,7 +65,7 @@ const Writer = function (settings?: WriterSettings): Writer {
      * @param {Array} attrs Optional attribute array or undefined if it hasn't any.
      * @param {Boolean} empty Optional empty state if the tag should end like <br />.
      */
-    start (name: string, attrs?: Attributes, empty?: boolean) {
+    start(name: string, attrs?: Attributes, empty?: boolean) {
       let i, l, attr, value;
 
       if (indent && indentBefore[name] && html.length > 0) {
@@ -106,10 +106,10 @@ const Writer = function (settings?: WriterSettings): Writer {
      * @method end
      * @param {String} name Name of the element.
      */
-    end (name: string) {
+    end(name: string) {
       let value;
 
-      /*if (indent && indentBefore[name] && html.length > 0) {
+      /* if (indent && indentBefore[name] && html.length > 0) {
         value = html[html.length - 1];
 
         if (value.length > 0 && value !== '\n')
@@ -134,7 +134,7 @@ const Writer = function (settings?: WriterSettings): Writer {
      * @param {String} text String to write out.
      * @param {Boolean} raw Optional raw state if true the contents wont get encoded.
      */
-    text (text: string, raw?: boolean) {
+    text(text: string, raw?: boolean) {
       if (text.length > 0) {
         html[html.length] = raw ? text : encode(text);
       }
@@ -146,7 +146,7 @@ const Writer = function (settings?: WriterSettings): Writer {
      * @method cdata
      * @param {String} text String to write out inside the cdata.
      */
-    cdata (text: string) {
+    cdata(text: string) {
       html.push('<![CDATA[', text, ']]>');
     },
 
@@ -156,7 +156,7 @@ const Writer = function (settings?: WriterSettings): Writer {
      * @method cdata
      * @param {String} text String to write out inside the comment.
      */
-    comment (text: string) {
+    comment(text: string) {
       html.push('<!--', text, '-->');
     },
 
@@ -167,7 +167,7 @@ const Writer = function (settings?: WriterSettings): Writer {
      * @param {String} name Name of the pi.
      * @param {String} text String to write out inside the pi.
      */
-    pi (name: string, text: string) {
+    pi(name: string, text: string) {
       if (text) {
         html.push('<?', name, ' ', encode(text), '?>');
       } else {
@@ -185,7 +185,7 @@ const Writer = function (settings?: WriterSettings): Writer {
      * @method doctype
      * @param {String} text String to write out inside the doctype.
      */
-    doctype (text: string) {
+    doctype(text: string) {
       html.push('<!DOCTYPE', text, '>', indent ? '\n' : '');
     },
 
@@ -194,7 +194,7 @@ const Writer = function (settings?: WriterSettings): Writer {
      *
      * @method reset
      */
-    reset () {
+    reset() {
       html.length = 0;
     },
 
@@ -204,7 +204,7 @@ const Writer = function (settings?: WriterSettings): Writer {
      * @method getContent
      * @return {String} HTML contents that got written down.
      */
-    getContent (): string {
+    getContent(): string {
       return html.join('').replace(/\n$/, '');
     }
   };

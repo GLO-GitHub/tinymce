@@ -1,26 +1,22 @@
-import { Element } from '@ephox/sugar';
+import { SugarElement } from '@ephox/sugar';
 
 declare let tinymce: any;
 
-export default function () {
+export default () => {
 
   const makeSidebar = (ed, name: string, background: string, width: number) => {
     ed.ui.registry.addSidebar(name, {
       icon: 'comment',
       tooltip: 'Tooltip for ' + name,
       onSetup: (api) => {
-        const box = Element.fromHtml('<div style="width: ' + width + 'px; background: ' + background + ';"></div>');
-        api.element().appendChild(box.dom());
+        const box = SugarElement.fromHtml('<div style="width: ' + width + 'px; background: ' + background + ';"></div>');
+        api.element().appendChild(box.dom);
         return () => {
-          api.element().removeChild(box.dom());
+          api.element().removeChild(box.dom);
         };
       },
-      onShow: (api) => {
-
-      },
-      onHide: (api) => {
-
-      },
+      onShow: (_api) => { },
+      onHide: (_api) => { }
     });
   };
 
@@ -44,7 +40,7 @@ export default function () {
     ],
     importcss_append: true,
     height: 400,
-    file_picker_callback (callback, value, meta) {
+    file_picker_callback(callback, _value, meta) {
       // Provide file and text for the link dialog
       if (meta.filetype === 'file') {
         callback('https://www.google.com/logos/google.jpg', { text: 'My text' });
@@ -60,14 +56,14 @@ export default function () {
         callback('movie.mp4', { source2: 'alt.ogg', poster: 'https://www.google.com/logos/google.jpg' });
       }
     },
-    spellchecker_callback (method, text, success, failure) {
+    spellchecker_callback(method, text, success, _failure) {
       const words = text.match(this.getWordCharPattern());
 
       if (method === 'spellcheck') {
         const suggestions = {};
 
         for (let i = 0; i < words.length; i++) {
-          suggestions[words[i]] = ['First', 'Second'];
+          suggestions[words[i]] = [ 'First', 'Second' ];
         }
 
         success(suggestions);
@@ -92,22 +88,22 @@ export default function () {
         'searchreplace visualblocks code fullscreen',
         'insertdatetime media table contextmenu paste'
       ],
-      toolbar: 'bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image insertfile undo redo | styleselect'
+      toolbar: 'fullscreen bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image insertfile undo redo | styleselect'
     },
-    setup (ed) {
+    setup(ed) {
       makeSidebar(ed, 'sidebar1', 'green', 200);
     },
     plugins: [
-      'help'
-      // 'autosave advlist autolink link image lists charmap print preview hr anchor pagebreak spellchecker toc',
-      // 'searchreplace wordcount visualblocks visualchars code fullscreen fullpage insertdatetime media nonbreaking',
-      // 'save table directionality emoticons template paste textcolor importcss colorpicker textpattern',
-      // 'codesample help noneditable print'
+      'fullscreen help',
+      'autosave advlist autolink link image lists charmap print preview hr anchor pagebreak spellchecker toc',
+      'searchreplace wordcount visualblocks visualchars code fullscreen fullpage insertdatetime media nonbreaking',
+      'save table directionality emoticons template paste textcolor importcss colorpicker textpattern',
+      'codesample help noneditable print'
     ],
     // rtl_ui: true,
     add_unload_trigger: false,
     autosave_ask_before_unload: false,
-    toolbar: 'undo redo fullscreen sidebar1 align fontsizeselect fontselect formatselect styleselect insertfile | styleselect | bold italic | alignleft aligncenter alignright alignjustify | ' +
+    toolbar: 'fullscreen undo redo fullscreen sidebar1 align fontsizeselect fontselect formatselect styleselect insertfile | styleselect | bold italic | alignleft aligncenter alignright alignjustify | ' +
     'bullist numlist outdent indent | link image | print preview media fullpage | forecolor backcolor emoticons table codesample code | ltr rtl',
 
     // Multiple toolbar array
@@ -144,10 +140,10 @@ export default function () {
     //     name: 'comments', items: [ 'addcomment' ]
     //   }
     // ],
-    toolbar_drawer: 'sliding',
+    toolbar_mode: 'sliding',
     emoticons_database_url: '/src/plugins/emoticons/main/js/emojis.js'
   };
 
   tinymce.init(settings);
   // tinymce.init(Merger.deepMerge(settings, { inline: true, selector: 'div.tinymce' }));
-}
+};

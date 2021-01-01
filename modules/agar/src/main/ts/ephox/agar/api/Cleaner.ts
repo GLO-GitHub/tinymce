@@ -1,4 +1,3 @@
-import { console } from '@ephox/dom-globals';
 import { Arr } from '@ephox/katamari';
 
 type Task = () => void;
@@ -21,7 +20,7 @@ export const Cleaner = () => {
       try {
         task();
       } catch (e) {
-        // tslint:disable-next-line:no-console
+        // eslint-disable-next-line no-console
         console.log(e);
       }
     });
@@ -30,12 +29,12 @@ export const Cleaner = () => {
 
   const wrap = <T extends any[], U> (fn: (...a: T) => U) => (...args: T): U => {
     run();
-    return fn.call(null, args);
+    return fn.apply(null, args);
   };
 
   return {
     add,
     run,
-    wrap,
+    wrap
   };
 };

@@ -1,12 +1,13 @@
-import { Pipeline, Log } from '@ephox/agar';
-import { UnitTest } from '@ephox/bedrock';
+import { Log, Pipeline } from '@ephox/agar';
+import { UnitTest } from '@ephox/bedrock-client';
 import { LegacyUnit, TinyLoader } from '@ephox/mcagar';
 
+import Editor from 'tinymce/core/api/Editor';
 import Plugin from 'tinymce/plugins/lists/Plugin';
 import Theme from 'tinymce/themes/silver/Theme';
 
-UnitTest.asynctest('tinymce.lists.browser.IndentTest', (success, failure) => {
-  const suite = LegacyUnit.createSuite();
+UnitTest.asynctest('browser.tinymce.plugins.lists.InlineTest', (success, failure) => {
+  const suite = LegacyUnit.createSuite<Editor>();
 
   Plugin();
   Theme();

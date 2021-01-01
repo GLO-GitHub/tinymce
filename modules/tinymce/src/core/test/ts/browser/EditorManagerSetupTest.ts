@@ -1,9 +1,8 @@
 import { Assertions, Logger, Pipeline, Step } from '@ephox/agar';
-import { UnitTest } from '@ephox/bedrock';
-import { window } from '@ephox/dom-globals';
+import { UnitTest } from '@ephox/bedrock-client';
 import EditorManager from 'tinymce/core/api/EditorManager';
-import ViewBlock from '../module/test/ViewBlock';
 import Theme from 'tinymce/themes/silver/Theme';
+import ViewBlock from '../module/test/ViewBlock';
 
 UnitTest.asynctest('browser.tinymce.core.EditorManagerSetupTest', (success, failure) => {
   const viewBlock = ViewBlock();

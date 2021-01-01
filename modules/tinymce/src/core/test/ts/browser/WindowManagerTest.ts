@@ -1,15 +1,15 @@
 import { Pipeline } from '@ephox/agar';
+import { UnitTest } from '@ephox/bedrock-client';
 import { LegacyUnit, TinyLoader } from '@ephox/mcagar';
-import Theme from 'tinymce/themes/silver/Theme';
 import Editor from 'tinymce/core/api/Editor';
-import { UnitTest } from '@ephox/bedrock';
+import Theme from 'tinymce/themes/silver/Theme';
 
 UnitTest.asynctest('browser.tinymce.core.WindowManagerTest', function (success, failure) {
-  const suite = LegacyUnit.createSuite();
+  const suite = LegacyUnit.createSuite<Editor>();
 
   Theme();
 
-  suite.test('OpenWindow/CloseWindow events', function (editor: Editor) {
+  suite.test('OpenWindow/CloseWindow events', function (editor) {
     let openWindowArgs, closeWindowArgs;
 
     editor.on('CloseWindow', function (e) {

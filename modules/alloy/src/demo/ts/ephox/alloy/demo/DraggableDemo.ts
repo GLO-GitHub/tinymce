@@ -1,7 +1,6 @@
-import { document } from '@ephox/dom-globals';
-import { Option } from '@ephox/katamari';
+import { Optional } from '@ephox/katamari';
 import { PlatformDetection } from '@ephox/sand';
-import { Class, Css, Element, Position } from '@ephox/sugar';
+import { Class, Css, SugarElement, SugarPosition } from '@ephox/sugar';
 
 import * as Behaviour from 'ephox/alloy/api/behaviour/Behaviour';
 import { Dragging } from 'ephox/alloy/api/behaviour/Dragging';
@@ -15,26 +14,26 @@ import * as HtmlDisplay from 'ephox/alloy/demo/HtmlDisplay';
 
 export default (): void => {
   const gui = Gui.create();
-  const body = Element.fromDom(document.body);
-  Class.add(gui.element(), 'gui-root-demo-container');
-  // Css.set(gui.element(), 'direction', 'rtl');
+  const body = SugarElement.fromDom(document.body);
+  Class.add(gui.element, 'gui-root-demo-container');
+  // Css.set(gui.element, 'direction', 'rtl');
 
   Attachment.attachSystem(body, gui);
   Css.set(body, 'margin-bottom', '2000px');
 
   const snapData = {
-    getSnapPoints () {
+    getSnapPoints() {
       return [
         Dragging.snap({
           sensor: DragCoord.fixed(300, 10),
-          range: Position(1000, 30),
-          output: DragCoord.fixed(Option.none(), Option.some(10))
+          range: SugarPosition(1000, 30),
+          output: DragCoord.fixed(Optional.none<number>(), Optional.some(10))
         }),
 
         Dragging.snap({
           sensor: DragCoord.offset(300, 500),
-          range: Position(40, 40),
-          output: DragCoord.absolute(Option.some(300), Option.some(500))
+          range: SugarPosition(40, 40),
+          output: DragCoord.absolute(Optional.some(300), Optional.some(500))
         })
       ];
     },
@@ -85,16 +84,11 @@ export default (): void => {
           },
 
           buttonBehaviours: Behaviour.derive([
-            Dragging.config(
-              PlatformDetection.detect().deviceType.isTouch() ? {
-                mode: 'touch',
-                snaps: snapData
-              } : {
-                mode: 'mouse',
-                blockerClass: 'blocker',
-                snaps: snapData
-              }
-            ),
+            Dragging.config({
+              mode: PlatformDetection.detect().deviceType.isTouch() ? 'touch' : 'mouse',
+              blockerClass: 'blocker',
+              snaps: snapData
+            }),
             Unselecting.config({ })
           ]),
           eventOrder: {

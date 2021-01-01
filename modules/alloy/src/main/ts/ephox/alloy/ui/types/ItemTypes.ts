@@ -1,4 +1,4 @@
-import { Option } from '@ephox/katamari';
+import { Optional } from '@ephox/katamari';
 
 import { AlloyBehaviourRecord } from '../../api/behaviour/Behaviour';
 import { SketchBehaviours } from '../../api/component/SketchBehaviours';
@@ -20,7 +20,7 @@ export interface WidgetItemSpec {
   type: 'widget';
   uid?: string;
   components?: AlloySpec[];
-  data?: ItemDataTuple; // why is this necessary?
+  data: ItemDataTuple; // why is this necessary?
   dom: RawDomSchema;
   autofocus?: boolean;
   widgetBehaviours?: AlloyBehaviourRecord;
@@ -70,7 +70,7 @@ export interface NormalItemDetail extends ItemDetail {
   components: AlloySpec[];
   dom: RawDomSchema;
   // INVESTIGATE: this might not be right
-  toggling: Option<Partial<TogglingConfigSpec>>;
+  toggling: Optional<Partial<TogglingConfigSpec>>;
   itemBehaviours: SketchBehaviours;
   ignoreFocus?: boolean;
   domModification: DomModification;

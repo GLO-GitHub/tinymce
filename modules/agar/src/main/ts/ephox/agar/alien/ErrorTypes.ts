@@ -1,7 +1,8 @@
-import { Merger, Type } from '@ephox/katamari';
-import { TestLabel } from '@ephox/bedrock';
+import { TestLabel } from '@ephox/bedrock-client';
+import { Type } from '@ephox/katamari';
 
-const enrichWith = function (label: TestLabel, err: any) {
+// TODO: tighten param and return type
+const enrichWith = (label: TestLabel, err: any): any => {
   if (Type.isString(err)) {
     return TestLabel.asString(label) + '\n' + err;
   } else if (err.name === 'HtmlAssertion') {

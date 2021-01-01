@@ -1,13 +1,13 @@
-import { Assertions, GeneralSteps, Pipeline, Step, Waiter, Logger, Log } from '@ephox/agar';
-import { UnitTest } from '@ephox/bedrock';
+import { Assertions, GeneralSteps, Log, Logger, Pipeline, Step, Waiter } from '@ephox/agar';
+import { UnitTest } from '@ephox/bedrock-client';
 import { LegacyUnit, TinyLoader } from '@ephox/mcagar';
 
+import Editor from 'tinymce/core/api/Editor';
 import Plugin from 'tinymce/plugins/fullpage/Plugin';
 import Theme from 'tinymce/themes/silver/Theme';
 
 UnitTest.asynctest('browser.tinymce.plugins.fullpage.FullPagePluginTest', function (success, failure) {
-
-  const suite = LegacyUnit.createSuite();
+  const suite = LegacyUnit.createSuite<Editor>();
 
   Plugin();
   Theme();
@@ -134,7 +134,7 @@ UnitTest.asynctest('browser.tinymce.plugins.fullpage.FullPagePluginTest', functi
           Assertions.assertEq('Styles added to iframe document', 'uppercase', editor.dom.getStyle(editor.getBody().firstChild, 'text-transform', true));
           Assertions.assertEq('Styles not added to actual element', '', editor.dom.getStyle(editor.getBody().firstChild, 'text-transform', false));
         }
-      ), 10, 3000)
+        ), 10, 3000)
     ]));
   };
 
@@ -174,12 +174,20 @@ UnitTest.asynctest('browser.tinymce.plugins.fullpage.FullPagePluginTest', functi
   };
 
   TinyLoader.setupLight(function (editor, onSuccess, onFailure) {
-    Pipeline.async({}, Log.steps('TBA', 'FullPage: Test full page header, footer, body attributes, hide in source view and adding and removing stylesheets',
-      [
-        sParseStyles(editor),
-        sProtectConditionalCommentsInHeadFoot(editor)
-      ].concat(suite.toSteps(editor))
-    ), onSuccess, onFailure);
+    Pipeline.async({}, [
+      Log.stepsAsStep('TBA', 'FullPage: Test full page header, footer, body attributes, hide in source view and adding and removing stylesheets',
+        [
+          sParseStyles(editor),
+          sProtectConditionalCommentsInHeadFoot(editor)
+        ].concat(suite.toSteps(editor))
+      ),
+      Log.stepsAsStep('TINY-6541', 'FullPage: Text content should not be modified', [
+        Step.sync(() => {
+          editor.setContent('some plain text');
+          Assertions.assertEq('should return plain text content', 'some plain text', editor.getContent({ format: 'text' }));
+        })
+      ])
+    ], onSuccess, onFailure);
 
     teardown(editor);
   }, {

@@ -6,10 +6,12 @@
  */
 
 import { AlloySpec, GuiFactory } from '@ephox/alloy';
+import { Menu } from '@ephox/bridge';
+import { Optional } from '@ephox/katamari';
 import I18n from 'tinymce/core/api/util/I18n';
 import { get as getIcon, IconProvider } from '../../../icons/Icons';
+import * as ConvertShortcut from '../alien/ConvertShortcut';
 import * as ItemClasses from '../ItemClasses';
-import ConvertShortcut from '../alien/ConvertShortcut';
 
 const renderIcon = (iconHtml: string): AlloySpec => ({
   dom: {
@@ -27,29 +29,29 @@ const renderText = (text: string): AlloySpec => ({
   components: [ GuiFactory.text(I18n.translate(text)) ]
 });
 
-const renderHtml = (html: string): AlloySpec => ({
+const renderHtml = (html: string, classes: string[]): AlloySpec => ({
   dom: {
     tag: 'div',
-    classes: [ ItemClasses.textClass ],
+    classes,
     innerHtml: html
   }
 });
 
 interface StyleProps {
   tag: string;
-  styleAttr: string;
+  styles: Record<string, string>;
 }
 
 const renderStyledText = (style: StyleProps, text: string): AlloySpec => ({
   dom: {
     tag: 'div',
-    classes: [ ItemClasses.textClass ],
+    classes: [ ItemClasses.textClass ]
   },
   components: [
     {
       dom: {
         tag: style.tag,
-        attributes: { style: style.styleAttr  }
+        styles: style.styles
       },
       components: [ GuiFactory.text(I18n.translate(text)) ]
     }
@@ -67,7 +69,7 @@ const renderShortcut = (shortcut: string): AlloySpec => ({
 const renderCheckmark = (icons: IconProvider): AlloySpec => ({
   dom: {
     tag: 'div',
-    classes: [ ItemClasses.iconClass, ItemClasses.checkmarkClass ],
+    classes: [ ItemClasses.checkmarkClass ],
     innerHtml: getIcon('checkmark', icons)
   }
 });
@@ -80,6 +82,54 @@ const renderSubmenuCaret = (icons: IconProvider): AlloySpec => ({
   }
 });
 
+const renderDownwardsCaret = (icons: IconProvider): AlloySpec => ({
+  dom: {
+    tag: 'div',
+    classes: [ ItemClasses.caretClass ],
+    innerHtml: getIcon('chevron-down', icons)
+  }
+});
+
+const renderContainer = (container: Menu.CardContainer, components: Array<AlloySpec>): AlloySpec => {
+  const directionClass = container.direction === 'vertical' ? ItemClasses.containerColumnClass : ItemClasses.containerRowClass;
+  const alignClass = container.align === 'left' ? ItemClasses.containerAlignLeftClass : ItemClasses.containerAlignRightClass;
+
+  const getValignClass = () => {
+    switch (container.valign) {
+      case 'top':
+        return ItemClasses.containerValignTopClass;
+      case 'middle':
+        return ItemClasses.containerValignMiddleClass;
+      case 'bottom':
+        return ItemClasses.containerValignBottomClass;
+    }
+  };
+
+  return {
+    dom: {
+      tag: 'div',
+      classes: [
+        ItemClasses.containerClass,
+        directionClass,
+        alignClass,
+        getValignClass()
+      ]
+    },
+    components
+  };
+};
+
+const renderImage = (src: string, classes: string[], alt: Optional<string>): AlloySpec => ({
+  dom: {
+    tag: 'img',
+    classes,
+    attributes: {
+      src,
+      alt: alt.getOr('')
+    }
+  }
+});
+
 export {
   renderIcon,
   renderText,
@@ -87,5 +137,8 @@ export {
   renderStyledText,
   renderShortcut,
   renderCheckmark,
-  renderSubmenuCaret
+  renderSubmenuCaret,
+  renderDownwardsCaret,
+  renderImage,
+  renderContainer
 };

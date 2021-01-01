@@ -5,16 +5,16 @@
  * For commercial licenses see https://www.tiny.cloud/
  */
 
-import { AlloyTriggers, AlloyComponent } from '@ephox/alloy';
-import { Element } from '@ephox/dom-globals';
-import { Fun, Option } from '@ephox/katamari';
+import { AlloyComponent, AlloyTriggers } from '@ephox/alloy';
+import { Optional } from '@ephox/katamari';
 import Editor from 'tinymce/core/api/Editor';
+import { BlockFormat, InlineFormat } from 'tinymce/core/api/fmt/Format';
+import { UiFactoryBackstage } from '../../../backstage/Backstage';
 import { updateMenuText } from '../../dropdown/CommonDropdown';
-import { onActionToggleFormat } from './utils/Utils';
 import { createMenuItems, createSelectButton, SelectSpec } from './BespokeSelect';
 import { buildBasicSettingsDataset, Delimiter } from './SelectDatasets';
-import { findNearest, getCurrentSelectionParents } from './utils/FormatDetection';
-import { UiFactoryBackstage } from '../../../backstage/Backstage';
+import { findNearest } from './utils/FormatDetection';
+import { onActionToggleFormat } from './utils/Utils';
 
 const defaultBlocks = (
   'Paragraph=p;' +
@@ -28,48 +28,35 @@ const defaultBlocks = (
 );
 
 const getSpec = (editor: Editor): SelectSpec => {
-  const getMatchingValue = (nodeChangeEvent) => {
-    return findNearest(editor, () => dataset.data, nodeChangeEvent);
-  };
-
-  const isSelectedFor = (format: string) => {
-    return () => {
-      return editor.formatter.match(format);
-    };
-  };
+  const isSelectedFor = (format: string) => () => editor.formatter.match(format);
 
   const getPreviewFor = (format: string) => () => {
     const fmt = editor.formatter.get(format);
-    return Option.some({
-      tag: fmt.length > 0 ? fmt[0].inline || fmt[0].block || 'div' : 'div',
-      styleAttr: editor.formatter.getCssText(format)
+    return Optional.some({
+      tag: fmt.length > 0 ? (fmt[0] as InlineFormat).inline || (fmt[0] as BlockFormat).block || 'div' : 'div',
+      styles: editor.dom.parseStyle(editor.formatter.getCssText(format))
     });
   };
 
-  const updateSelectMenuText = (parents: Element[], comp: AlloyComponent) => {
-    const detectedFormat = getMatchingValue(parents);
+  const updateSelectMenuText = (comp: AlloyComponent) => {
+    const detectedFormat = findNearest(editor, () => dataset.data);
     const text = detectedFormat.fold(() => 'Paragraph', (fmt) => fmt.title);
     AlloyTriggers.emitWith(comp, updateMenuText, {
       text
     });
   };
 
-  const nodeChangeHandler = Option.some((comp: AlloyComponent) => {
-    return (e) => updateSelectMenuText(e.parents, comp);
-  });
+  const nodeChangeHandler = Optional.some((comp: AlloyComponent) => () => updateSelectMenuText(comp));
 
-  const setInitialValue = Option.some((comp: AlloyComponent) => {
-    const parents = getCurrentSelectionParents(editor);
-    updateSelectMenuText(parents, comp);
-  });
+  const setInitialValue = Optional.some((comp: AlloyComponent) => updateSelectMenuText(comp));
 
   const dataset = buildBasicSettingsDataset(editor, 'block_formats', defaultBlocks, Delimiter.SemiColon);
 
   return {
     tooltip: 'Blocks',
-    icon: Option.none(),
+    icon: Optional.none(),
     isSelectedFor,
-    getCurrentValue: Fun.constant(Option.none()),
+    getCurrentValue: Optional.none,
     getPreviewFor,
     onAction: onActionToggleFormat(editor),
     setInitialValue,
@@ -80,9 +67,7 @@ const getSpec = (editor: Editor): SelectSpec => {
   };
 };
 
-const createFormatSelect = (editor: Editor, backstage: UiFactoryBackstage) => {
-  return createSelectButton(editor, backstage, getSpec(editor));
-};
+const createFormatSelect = (editor: Editor, backstage: UiFactoryBackstage) => createSelectButton(editor, backstage, getSpec(editor));
 
 // FIX: Test this!
 const formatSelectMenu = (editor: Editor, backstage: UiFactoryBackstage) => {

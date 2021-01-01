@@ -1,9 +1,9 @@
 import { ApproxStructure, Log, Pipeline, RealKeys } from '@ephox/agar';
-import { UnitTest } from '@ephox/bedrock';
+import { UnitTest } from '@ephox/bedrock-client';
 import { TinyApis, TinyLoader, TinyUi } from '@ephox/mcagar';
+import Env from 'tinymce/core/api/Env';
 import NonbreakingPlugin from 'tinymce/plugins/nonbreaking/Plugin';
 import theme from 'tinymce/themes/silver/Theme';
-import Env from 'tinymce/core/api/Env';
 
 UnitTest.asynctest('webdriver.tinymce.plugins.nonbreaking.NonbreakingTypingTest', (success, failure) => {
   // Note: Uses RealKeys, so needs a browser. Headless won't work.
@@ -11,7 +11,8 @@ UnitTest.asynctest('webdriver.tinymce.plugins.nonbreaking.NonbreakingTypingTest'
   theme();
   NonbreakingPlugin();
 
-  const isGeckoOrIE = Env.gecko || (Env.ie && Env.ie <= 11);
+  const isGecko = Env.browser.isFirefox();
+  const isGeckoOrIE = isGecko || Env.browser.isIE();
 
   TinyLoader.setup(function (editor, onSuccess, onFailure) {
     const tinyUi = TinyUi(editor);
@@ -43,7 +44,7 @@ UnitTest.asynctest('webdriver.tinymce.plugins.nonbreaking.NonbreakingTypingTest'
 
       Log.stepsAsStep('TBA', '2. NonBreaking: Add text to editor, click on the nbsp button, and assert content is correct', [
         tinyApis.sSetContent('test'),
-        tinyApis.sSetCursor([0, 0], 4),
+        tinyApis.sSetCursor([ 0, 0 ], 4),
         tinyUi.sClickOnToolbar('click on nbsp button', 'button[aria-label="Nonbreaking space"]'),
         tinyApis.sAssertContentStructure(ApproxStructure.build(function (s, str) {
           return s.element('body', {
@@ -62,7 +63,7 @@ UnitTest.asynctest('webdriver.tinymce.plugins.nonbreaking.NonbreakingTypingTest'
 
       Log.stepsAsStep('TBA', '3. NonBreaking: Add content to editor, click on the nbsp button then type some text, and assert content is correct', [
         tinyApis.sSetContent('test'),
-        tinyApis.sSetCursor([0, 0], 4),
+        tinyApis.sSetCursor([ 0, 0 ], 4),
         tinyUi.sClickOnToolbar('click on nbsp button', 'button[aria-label="Nonbreaking space"]'),
         RealKeys.sSendKeysOn(
           'iframe => body => p',
@@ -99,7 +100,7 @@ UnitTest.asynctest('webdriver.tinymce.plugins.nonbreaking.NonbreakingTypingTest'
               s.element('p', {
                 children: [
                   s.text(str.is(isGeckoOrIE ? '\u00a0 ' : '\u00a0\u00a0'))
-                ].concat(Env.gecko ? [ s.element('br', {})] : [])
+                ].concat(isGecko ? [ s.element('br', {}) ] : [])
               })
             ]
           });
@@ -108,7 +109,7 @@ UnitTest.asynctest('webdriver.tinymce.plugins.nonbreaking.NonbreakingTypingTest'
 
       Log.stepsAsStep('TBA', '5. NonBreaking: Add text to editor, click on the nbsp button and add content plus a space, and assert content is correct', [
         tinyApis.sSetContent('test'),
-        tinyApis.sSetCursor([0, 0], 4),
+        tinyApis.sSetCursor([ 0, 0 ], 4),
         tinyUi.sClickOnToolbar('click on nbsp button', 'button[aria-label="Nonbreaking space"]'),
         RealKeys.sSendKeysOn(
           'iframe => body => p',
@@ -122,12 +123,12 @@ UnitTest.asynctest('webdriver.tinymce.plugins.nonbreaking.NonbreakingTypingTest'
               s.element('p', {
                 children: [
                   s.text(str.is(isGeckoOrIE ? 'test test ' : 'test test\u00a0'))
-                ].concat(Env.gecko ? [ s.element('br', {})] : [])
+                ].concat(isGecko ? [ s.element('br', {}) ] : [])
               })
             ]
           });
         }))
-      ]),
+      ])
 
     ], onSuccess, onFailure);
   }, {

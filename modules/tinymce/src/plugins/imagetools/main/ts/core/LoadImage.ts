@@ -7,7 +7,7 @@
 
 import Promise from 'tinymce/core/api/util/Promise';
 
-const loadImage = function (image) {
+const loadImage = function (image: HTMLImageElement): Promise<HTMLImageElement> {
   return new Promise(function (resolve) {
     const loaded = function () {
       image.removeEventListener('load', loaded);
@@ -22,6 +22,6 @@ const loadImage = function (image) {
   });
 };
 
-export default {
+export {
   loadImage
 };

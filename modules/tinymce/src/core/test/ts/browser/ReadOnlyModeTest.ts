@@ -1,10 +1,14 @@
-import { ApproxStructure, Chain, Log, Mouse, Pipeline, RawAssertions, Step, UiFinder } from '@ephox/agar';
-import { UnitTest } from '@ephox/bedrock';
+import { ApproxStructure, Chain, Log, NamedChain, Mouse, Pipeline, Step, UiFinder } from '@ephox/agar';
+import { Assert, UnitTest } from '@ephox/bedrock-client';
+import { Optional, OptionalInstances } from '@ephox/katamari';
 import { TinyApis, TinyLoader } from '@ephox/mcagar';
-import { Body, Class, Css, Element, SelectorFind } from '@ephox/sugar';
+import { Class, Css, Scroll, SelectorFind, SugarBody, SugarElement } from '@ephox/sugar';
 import Editor from 'tinymce/core/api/Editor';
 import TablePlugin from 'tinymce/plugins/table/Plugin';
 import Theme from 'tinymce/themes/silver/Theme';
+import * as Readonly from 'tinymce/core/mode/Readonly';
+
+const tOptional = OptionalInstances.tOptional;
 
 UnitTest.asynctest('browser.tinymce.core.ReadOnlyModeTest', (success, failure) => {
   Theme();
@@ -12,75 +16,76 @@ UnitTest.asynctest('browser.tinymce.core.ReadOnlyModeTest', (success, failure) =
 
   TinyLoader.setup(function (editor: Editor, onSuccess, onFailure) {
     const tinyApis = TinyApis(editor);
+    const eDoc = SugarElement.fromDom(editor.getDoc());
 
-    const sSetMode = (mode: string) => {
-      return Step.label('sSetMode: setting the editor mode to ' + mode, Step.sync(() => {
-        editor.mode.set(mode);
-      }));
-    };
+    const sSetMode = (mode: string) => Step.label('sSetMode: setting the editor mode to ' + mode, Step.sync(() => {
+      editor.mode.set(mode);
+    }));
 
-    const sAssertNestedContentEditableTrueDisabled = (state: boolean, offscreen: boolean) => {
-      return tinyApis.sAssertContentStructure(
-        ApproxStructure.build(function (s, str, arr) {
-          const attrs = state ? {
-            'contenteditable': str.is('false'),
-            'data-mce-contenteditable': str.is('true')
-          } : {
-            'contenteditable': str.is('true'),
-            'data-mce-contenteditable': str.none()
-          };
+    const sAssertNestedContentEditableTrueDisabled = (state: boolean, offscreen: boolean) => tinyApis.sAssertContentStructure(
+      ApproxStructure.build(function (s, str, _arr) {
+        const attrs = state ? {
+          'contenteditable': str.is('false'),
+          'data-mce-contenteditable': str.is('true')
+        } : {
+          'contenteditable': str.is('true'),
+          'data-mce-contenteditable': str.none()
+        };
 
-          return s.element('body', {
-            children: [
-              s.element('div', {
-                attrs: {
-                  contenteditable: str.is('false')
-                },
-                children: [
-                  s.text(str.is('a')),
-                  s.element('span', {
-                    attrs,
-                  }),
-                  s.text(str.is('c'))
-                ]
-              }),
-              ...offscreen ? [ s.element('div', {}) ] : [] // Offscreen cef clone
-            ]
-          });
-        })
-      );
-    };
+        return s.element('body', {
+          children: [
+            s.element('div', {
+              attrs: {
+                contenteditable: str.is('false')
+              },
+              children: [
+                s.text(str.is('a')),
+                s.element('span', {
+                  attrs
+                }),
+                s.text(str.is('c'))
+              ]
+            }),
+            ...offscreen ? [ s.element('div', {}) ] : [] // Offscreen cef clone
+          ]
+        });
+      })
+    );
 
     const sAssertFakeSelection = (expectedState: boolean) => Step.sync(() => {
-      RawAssertions.assertEq('Selected element should have expected state', expectedState, editor.selection.getNode().hasAttribute('data-mce-selected'));
+      Assert.eq('Selected element should have expected state', expectedState, editor.selection.getNode().hasAttribute('data-mce-selected'));
     });
 
-    const sAssertResizeBars = (expectedState: boolean) => {
-      return Step.sync(() => {
-        SelectorFind.descendant(Element.fromDom(editor.getDoc().documentElement), '.ephox-snooker-resizer-bar').fold(
-          () => {
-            RawAssertions.assertEq('Was expecting to find resize bars', expectedState, false);
-          },
-          (bar) => {
-            const actualDisplay = Css.get(bar, 'display');
-            const expectedDisplay = expectedState ? 'block' : 'none';
-            RawAssertions.assertEq('Should be expected display state on resize bar', expectedDisplay, actualDisplay);
-          }
-        );
-      });
-    };
+    const sAssertResizeBars = (expectedState: boolean) => Step.sync(() => {
+      SelectorFind.descendant(SugarElement.fromDom(editor.getDoc().documentElement), '.ephox-snooker-resizer-bar').fold(
+        () => {
+          Assert.eq('Was expecting to find resize bars', expectedState, false);
+        },
+        (bar) => {
+          const actualDisplay = Css.get(bar, 'display');
+          const expectedDisplay = expectedState ? 'block' : 'none';
+          Assert.eq('Should be expected display state on resize bar', expectedDisplay, actualDisplay);
+        }
+      );
+    });
 
-    const sMouseOverTable = Chain.asStep(Element.fromDom(editor.getBody()), [
+    const sMouseOverTable = Chain.asStep(SugarElement.fromDom(editor.getBody()), [
       UiFinder.cFindIn('table'),
       Mouse.cMouseOver
     ]);
 
-    const sAssertToolbarDisabled = (expectedState: boolean) => Chain.asStep(Body.body(), [
+    const sAssertToolbarDisabled = (expectedState: boolean) => Chain.asStep(SugarBody.body(), [
       UiFinder.cFindIn('button[title="Bold"]'),
       Chain.op((elm) => {
-        RawAssertions.assertEq('Button should have expected disabled state', expectedState, Class.has(elm, 'tox-tbtn--disabled'));
+        Assert.eq('Button should have expected disabled state', expectedState, Class.has(elm, 'tox-tbtn--disabled'));
       })
     ]);
+
+    const sAssertHrefOpt = (selector: string, expectedHref: Optional<string>) => Step.sync(() => {
+      const elm = SugarElement.fromDom(editor.dom.select(selector)[0]);
+      const hrefOpt = Readonly.getAnchorHrefOpt(editor, elm);
+      Assert.eq('href options match', expectedHref, hrefOpt, tOptional());
+    });
 
     Pipeline.async({}, [
       Log.stepsAsStep('TBA', 'Swiching to readonly mode while having cef selection should remove fake selection', [
@@ -111,7 +116,7 @@ UnitTest.asynctest('browser.tinymce.core.ReadOnlyModeTest', (success, failure) =
         sSetMode('readonly'),
         tinyApis.sSetCursor([], 0),
         tinyApis.sAssertContentStructure(
-          ApproxStructure.build(function (s, str, arr) {
+          ApproxStructure.build(function (s, str, _arr) {
             return s.element('body', {
               children: [
                 s.element('div', {
@@ -119,7 +124,7 @@ UnitTest.asynctest('browser.tinymce.core.ReadOnlyModeTest', (success, failure) =
                     contenteditable: str.is('false')
                   },
                   children: [
-                    s.text(str.is('CEF')),
+                    s.text(str.is('CEF'))
                   ]
                 })
               ]
@@ -134,10 +139,10 @@ UnitTest.asynctest('browser.tinymce.core.ReadOnlyModeTest', (success, failure) =
                 s.element('p', {
                   attrs: {
                     'data-mce-caret': str.is('before'),
-                    'data-mce-bogus': str.is('all'),
+                    'data-mce-bogus': str.is('all')
                   },
                   children: [
-                    s.element('br', {}),
+                    s.element('br', {})
                   ]
                 }),
                 s.element('div', {
@@ -145,14 +150,14 @@ UnitTest.asynctest('browser.tinymce.core.ReadOnlyModeTest', (success, failure) =
                     contenteditable: str.is('false')
                   },
                   children: [
-                    s.text(str.is('CEF')),
+                    s.text(str.is('CEF'))
                   ]
                 }),
                 s.element('div', {
                   attrs: {
-                    'data-mce-bogus': str.is('all'),
+                    'data-mce-bogus': str.is('all')
                   },
-                  classes: [arr.has('mce-visual-caret'), arr.has('mce-visual-caret-before')]
+                  classes: [ arr.has('mce-visual-caret'), arr.has('mce-visual-caret-before') ]
                 })
               ]
             });
@@ -188,7 +193,7 @@ UnitTest.asynctest('browser.tinymce.core.ReadOnlyModeTest', (success, failure) =
       Log.stepsAsStep('TBA', 'Resize bars for tables should be hidden while in readonly mode', [
         sSetMode('design'),
         tinyApis.sSetContent('<table><tbody><tr><td>a</td></tr></tbody></table>'),
-        tinyApis.sSetCursor([0, 0, 0, 0, 0], 0),
+        tinyApis.sSetCursor([ 0, 0, 0, 0, 0 ], 0),
         sMouseOverTable,
         sAssertResizeBars(true),
         sSetMode('readonly'),
@@ -200,16 +205,17 @@ UnitTest.asynctest('browser.tinymce.core.ReadOnlyModeTest', (success, failure) =
         sAssertResizeBars(true)
       ]),
       Log.stepsAsStep('TBA', 'Context toolbar should hide in readonly mode', [
+        tinyApis.sFocus(),
         sSetMode('design'),
         tinyApis.sSetContent('<table><tbody><tr><td>a</td></tr></tbody></table>'),
-        tinyApis.sSetCursor([0, 0, 0, 0, 0], 0),
-        UiFinder.sWaitFor('Waited for context toolbar', Body.body(), '.tox-pop'),
+        tinyApis.sSetCursor([ 0, 0, 0, 0, 0 ], 0),
+        UiFinder.sWaitFor('Waited for context toolbar', SugarBody.body(), '.tox-pop'),
         sSetMode('readonly'),
-        UiFinder.sNotExists(Body.body(), '.tox-pop'),
+        UiFinder.sNotExists(SugarBody.body(), '.tox-pop'),
         sSetMode('design'),
         tinyApis.sSetContent('<table><tbody><tr><td>a</td></tr></tbody></table>'),
-        tinyApis.sSetCursor([0, 0, 0, 0, 0], 0),
-        UiFinder.sWaitFor('Waited for context toolbar', Body.body(), '.tox-pop')
+        tinyApis.sSetCursor([ 0, 0, 0, 0, 0 ], 0),
+        UiFinder.sWaitFor('Waited for context toolbar', SugarBody.body(), '.tox-pop')
       ]),
       Log.stepsAsStep('TBA', 'Main toolbar should disable when switching to readonly mode', [
         sSetMode('design'),
@@ -221,19 +227,69 @@ UnitTest.asynctest('browser.tinymce.core.ReadOnlyModeTest', (success, failure) =
       ]),
       Log.stepsAsStep('TBA', 'Menus should close when switching to readonly mode', [
         sSetMode('design'),
-        Chain.asStep(Body.body(), [
+        Chain.asStep(SugarBody.body(), [
           UiFinder.cFindIn('.tox-mbtn:contains("File")'),
           Mouse.cClick
         ]),
-        UiFinder.sWaitFor('Waited for menu', Body.body(), '.tox-menu'),
+        UiFinder.sWaitFor('Waited for menu', SugarBody.body(), '.tox-menu'),
         sSetMode('readonly'),
-        UiFinder.sNotExists(Body.body(), '.tox-menu')
+        UiFinder.sNotExists(SugarBody.body(), '.tox-menu')
+      ]),
+      Log.stepsAsStep('TINY-6248', 'getAnchorHrefOpt should return an Optional of the href of the closest anchor tag', [
+        tinyApis.sSetContent('<p><a href="https://tiny.cloud">external link</a></p>'),
+        sAssertHrefOpt('a', Optional.some('https://tiny.cloud')),
+        tinyApis.sSetContent('<p><a>external link with no href</a></p>'),
+        sAssertHrefOpt('a', Optional.none()),
+        tinyApis.sSetContent('<p><a href="https://tiny.cloud"><img src="">nested image </img>inside anchor</a></p>'),
+        sAssertHrefOpt('img', Optional.some('https://tiny.cloud'))
+      ]),
+      Log.stepsAsStep('TINY-6248', 'processReadonlyEvents should scroll to bookmark with id', [
+        sSetMode('design'),
+        Step.sync(() => editor.resetContent()),
+        sSetMode('readonly'),
+        tinyApis.sSetContent('<p><a href="#someBookmark">internal bookmark</a></p><div style="padding-top: 2000px;"></div><p><a id="someBookmark"></a></p>'),
+        Chain.asStep(SugarElement.fromDom(editor.getBody()), [
+          NamedChain.asChain([
+            NamedChain.direct(NamedChain.inputName(), Chain.identity, 'body'),
+            NamedChain.write(
+              'yPos',
+              Chain.mapper(() => Scroll.get(eDoc).top)
+            ),
+            NamedChain.direct('body', UiFinder.cFindIn('a[href="#someBookmark"]'), 'anchor'),
+            NamedChain.read('anchor', Mouse.cClick),
+            NamedChain.read('yPos', Chain.op((yPos) => {
+              const newPos = Scroll.get(eDoc).top;
+              Assert.eq('assert yPos has changed i.e. has scrolled', true, yPos !== newPos);
+            }))
+          ])
+        ])
+      ]),
+      Log.stepsAsStep('TINY-6248', 'processReadonlyEvents should scroll to bookmark with name', [
+        sSetMode('design'),
+        Step.sync(() => editor.resetContent()),
+        sSetMode('readonly'),
+        tinyApis.sSetContent('<p><a href="#someBookmark">internal bookmark</a></p><div style="padding-top: 2000px;"></div><p><a name="someBookmark"></a></p>'),
+        Chain.asStep(SugarElement.fromDom(editor.getBody()), [
+          NamedChain.asChain([
+            NamedChain.direct(NamedChain.inputName(), Chain.identity, 'body'),
+            NamedChain.write(
+              'yPos',
+              Chain.mapper(() => Scroll.get(eDoc).top)
+            ),
+            NamedChain.direct('body', UiFinder.cFindIn('a[href="#someBookmark"]'), 'anchor'),
+            NamedChain.read('anchor', Mouse.cClick),
+            NamedChain.read('yPos', Chain.op((yPos) => {
+              const newPos = Scroll.get(eDoc).top;
+              Assert.eq('assert yPos has changed i.e. has scrolled', true, yPos !== newPos);
+            }))
+          ])
+        ])
       ])
     ], onSuccess, onFailure);
   }, {
-      base_url: '/project/tinymce/js/tinymce',
-      toolbar: 'bold',
-      plugins: 'table',
-      statusbar: false
-    }, success, failure);
+    base_url: '/project/tinymce/js/tinymce',
+    toolbar: 'bold',
+    plugins: 'table',
+    statusbar: false
+  }, success, failure);
 });

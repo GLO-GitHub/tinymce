@@ -5,23 +5,27 @@
  * For commercial licenses see https://www.tiny.cloud/
  */
 
+import Editor from 'tinymce/core/api/Editor';
 import Delay from 'tinymce/core/api/util/Delay';
-import VisualChars from './VisualChars';
+import * as Settings from '../api/Settings';
+import * as VisualChars from './VisualChars';
 
-const setup = function (editor, toggleState) {
-  const debouncedToggle = Delay.debounce(function () {
+const setup = (editor: Editor, toggleState) => {
+  const debouncedToggle = Delay.debounce(() => {
     VisualChars.toggle(editor);
   }, 300);
 
-  if (editor.settings.forced_root_block !== false) {
-    editor.on('keydown', function (e) {
+  if (Settings.hasForcedRootBlock(editor)) {
+    editor.on('keydown', (e) => {
       if (toggleState.get() === true) {
         e.keyCode === 13 ? VisualChars.toggle(editor) : debouncedToggle();
       }
     });
   }
+
+  editor.on('remove', debouncedToggle.stop);
 };
 
-export default {
+export {
   setup
 };

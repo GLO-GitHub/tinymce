@@ -7,49 +7,30 @@
 
 // DUPE with SilverDialog. Cleaning up.
 import {
-  AddEventsBehaviour,
-  AlloyTriggers,
-  Behaviour,
-  Composing,
-  GuiFactory,
-  Keying,
-  Memento,
-  Receiving,
-  Reflecting,
-  SimpleSpec,
-  SystemEvents,
-  Focusing,
-  AlloyEvents,
-  NativeEvents
+  AddEventsBehaviour, AlloyEvents, AlloyTriggers, Behaviour, Blocking, Composing, Focusing, GuiFactory, Keying, Memento, NativeEvents,
+  Receiving, Reflecting, Replacing, SimpleSpec, SystemEvents
 } from '@ephox/alloy';
-import { DialogManager, Types } from '@ephox/bridge';
-import { Option, Id } from '@ephox/katamari';
-import { Attr, Node } from '@ephox/sugar';
+import { DialogManager } from '@ephox/bridge';
+import { Id, Optional } from '@ephox/katamari';
+import { Attribute, SugarNode } from '@ephox/sugar';
 
+import { UiFactoryBackstage } from '../../backstage/Backstage';
 import { RepresentingConfigs } from '../alien/RepresentingConfigs';
 import { formCloseEvent } from '../general/FormEvents';
-import NavigableObject from '../general/NavigableObject';
+import * as NavigableObject from '../general/NavigableObject';
 import { dialogChannel } from './DialogChannels';
 import { renderInlineBody } from './SilverDialogBody';
+import * as SilverDialogCommon from './SilverDialogCommon';
 import { SilverDialogEvents } from './SilverDialogEvents';
 import { renderInlineFooter } from './SilverDialogFooter';
 import { renderInlineHeader } from './SilverDialogHeader';
 import { getDialogApi } from './SilverDialogInstanceApi';
-import { UiFactoryBackstage } from '../../backstage/Backstage';
-import * as SilverDialogCommon from './SilverDialogCommon';
 
-interface WindowExtra<T> {
-  redial: (newConfig: Types.Dialog.DialogApi<T>) => DialogManager.DialogInit<T>;
-  closeWindow: () => void;
-}
-
-const renderInlineDialog = <T>(dialogInit: DialogManager.DialogInit<T>, extra: WindowExtra<T>, backstage: UiFactoryBackstage, ariaAttrs: boolean) => {
+const renderInlineDialog = <T>(dialogInit: DialogManager.DialogInit<T>, extra: SilverDialogCommon.WindowExtra, backstage: UiFactoryBackstage, ariaAttrs: boolean) => {
   const dialogLabelId = Id.generate('dialog-label');
   const dialogContentId = Id.generate('dialog-content');
 
-  const updateState = (_comp, incoming: DialogManager.DialogInit<T>) => {
-    return Option.some(incoming);
-  };
+  const updateState = (_comp, incoming: DialogManager.DialogInit<T>) => Optional.some(incoming);
 
   const memHeader = Memento.record(
     renderInlineHeader({
@@ -77,11 +58,15 @@ const renderInlineDialog = <T>(dialogInit: DialogManager.DialogInit<T>, extra: W
   const dialogEvents = SilverDialogEvents.initDialog(
     () => instanceApi,
     {
-      // TODO: Implement block and unblock for inline dialogs
-      onBlock: () => { },
-      onUnblock: () => { },
+      onBlock: (event) => {
+        Blocking.block(dialog, (_comp, bs) => SilverDialogCommon.getBusySpec(event.message, bs));
+      },
+      onUnblock: () => {
+        Blocking.unblock(dialog);
+      },
       onClose: () => extra.closeWindow()
-    }
+    },
+    backstage.shared.getSink
   );
 
   // TODO: Disable while validating?
@@ -92,13 +77,13 @@ const renderInlineDialog = <T>(dialogInit: DialogManager.DialogInit<T>, extra: W
       attributes: {
         role: 'dialog',
         ['aria-labelledby']: dialogLabelId,
-        ['aria-describedby']: `${dialogContentId}`,
+        ['aria-describedby']: `${ dialogContentId }`
       }
     },
     eventOrder: {
       [SystemEvents.receive()]: [ Reflecting.name(), Receiving.name() ],
-      [SystemEvents.execute()]: ['execute-on-form'],
-      [SystemEvents.attachedToDom()]: ['reflecting', 'execute-on-form']
+      [SystemEvents.execute()]: [ 'execute-on-form' ],
+      [SystemEvents.attachedToDom()]: [ 'reflecting', 'execute-on-form' ]
     },
 
     // Dupe with SilverDialog.
@@ -107,13 +92,11 @@ const renderInlineDialog = <T>(dialogInit: DialogManager.DialogInit<T>, extra: W
         mode: 'cyclic',
         onEscape: (c) => {
           AlloyTriggers.emit(c, formCloseEvent);
-          return Option.some(true);
+          return Optional.some(true);
         },
-        useTabstopAt: (elem) => {
-          return !NavigableObject.isPseudoStop(elem) && (
-            Node.name(elem) !== 'button' || Attr.get(elem, 'disabled') !== 'disabled'
-          );
-        }
+        useTabstopAt: (elem) => !NavigableObject.isPseudoStop(elem) && (
+          SugarNode.name(elem) !== 'button' || Attribute.get(elem, 'disabled') !== 'disabled'
+        )
       }),
       Reflecting.config({
         channel: dialogChannel,
@@ -126,12 +109,14 @@ const renderInlineDialog = <T>(dialogInit: DialogManager.DialogInit<T>, extra: W
         dialogEvents.concat([
           // Note: `runOnSource` here will only listen to the event at the outer component level.
           // Using just `run` instead will cause an infinite loop as `focusIn` would fire a `focusin` which would then get responded to and so forth.
-          AlloyEvents.runOnSource(NativeEvents.focusin(), (comp, se) => {
+          AlloyEvents.runOnSource(NativeEvents.focusin(), (comp, _se) => {
             Keying.focusIn(comp);
           })
         ])
       ),
-      RepresentingConfigs.memory({ })
+      Blocking.config({ getRoot: () => Optional.some(dialog) }),
+      Replacing.config({}),
+      RepresentingConfigs.memory({})
     ]),
 
     components: [

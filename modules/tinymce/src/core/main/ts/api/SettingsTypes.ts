@@ -5,45 +5,55 @@
  * For commercial licenses see https://www.tiny.cloud/
  */
 
-import { Element, HTMLElement, HTMLImageElement, Node, ReferrerPolicy as DomReferrerPolicy } from '@ephox/dom-globals';
 import { UploadHandler } from '../file/Uploader';
-import { AllowedFormat } from './fmt/StyleFormat';
-import { Formats } from './fmt/Format';
 import Editor from './Editor';
+import { Formats } from './fmt/Format';
+import { AllowedFormat } from './fmt/StyleFormat';
 import { SchemaType } from './html/Schema';
+import { EditorUiApi } from './ui/Ui';
+
+export type EntityEncoding = 'named' | 'numeric' | 'raw' | 'named,numeric' | 'named+numeric' | 'numeric,named' | 'numeric+named';
 
 export type ThemeInitFunc = (editor: Editor, elm: HTMLElement) => {
   editorContainer: HTMLElement;
   iframeContainer: HTMLElement;
   height?: number;
   iframeHeight?: number;
+  api?: EditorUiApi;
 };
 
 export type SetupCallback = (editor: Editor) => void;
 
 export type FilePickerCallback = (callback: Function, value: any, meta: Record<string, any>) => void;
 export type FilePickerValidationStatus = 'valid' | 'unknown' | 'invalid' | 'none';
-export type FilePickerValidationCallback = (info: { type: string, url: string }, callback: (validation: { status: FilePickerValidationStatus, message: string}) => void) => void;
-
-// dom-globals is outdated and missing a number of valid values
-export type ReferrerPolicy = DomReferrerPolicy | 'origin' | 'same-origin' | 'strict-origin' | 'strict-origin-when-cross-origin';
+export type FilePickerValidationCallback = (info: { type: string; url: string }, callback: (validation: { status: FilePickerValidationStatus; message: string}) => void) => void;
 
 export type URLConverter = (url: string, name: string, elm?: HTMLElement) => string;
 export type URLConverterCallback = (url: string, node: Node, on_save: boolean, name: string) => void;
 
-export interface RawEditorSettings {
+interface ToolbarGroup {
+  name?: string;
+  items: string[];
+}
+
+export type ToolbarMode = 'floating' | 'sliding' | 'scrolling' | 'wrap';
+
+interface BaseEditorSettings {
   add_form_submit_trigger?: boolean;
   add_unload_trigger?: boolean;
   allow_conditional_comments?: boolean;
+  allow_html_data_urls?: boolean;
   allow_html_in_named_anchor?: boolean;
   allow_script_urls?: boolean;
+  allow_svg_data_urls?: boolean;
   allow_unsafe_link_target?: boolean;
-  anchor_bottom?: boolean | string;
-  anchor_top?: boolean | string;
+  anchor_bottom?: false | string;
+  anchor_top?: false | string;
   auto_focus?: string | true;
   automatic_uploads?: boolean;
   base_url?: string;
   block_formats?: string;
+  block_unsupported_drop?: boolean;
   body_id?: string;
   body_class?: string;
   br_in_pre?: boolean;
@@ -73,9 +83,8 @@ export interface RawEditorSettings {
   encoding?: string;
   end_container_on_empty_block?: boolean;
   entities?: string;
-  entity_encoding?: string;
+  entity_encoding?: EntityEncoding;
   extended_valid_elements?: string;
-  external_plugins?: Record<string, string>;
   event_root?: string;
   file_picker_callback?: FilePickerCallback;
   file_picker_types?: string;
@@ -120,17 +129,18 @@ export interface RawEditorSettings {
   language?: string;
   language_load?: boolean;
   language_url?: string;
+  lineheight_formats?: string;
   max_height?: number;
   max_width?: number;
-  menu?: Record<string, { title: string, items: string }>;
+  menu?: Record<string, { title: string; items: string }>;
   menubar?: boolean | string;
   min_height?: number;
   min_width?: number;
-  mobile?: RawEditorSettings;
   no_newline_selector?: string;
   nowrap?: boolean;
   object_resizing?: boolean | string;
-  plugins?: string | string[];
+  placeholder?: string;
+  preserve_cdata?: boolean;
   preview_styles?: boolean | string;
   protect?: RegExp[];
   readonly?: boolean;
@@ -153,10 +163,10 @@ export interface RawEditorSettings {
   style_formats_merge?: boolean;
   submit_patch?: boolean;
   suffix?: string;
-  target?: Element;
+  target?: HTMLElement;
   theme?: string | ThemeInitFunc;
   theme_url?: string;
-  toolbar?: boolean | string | string[] | { name: string, items: string[]}[];
+  toolbar?: boolean | string | string[] | Array<ToolbarGroup>;
   toolbar1?: string;
   toolbar2?: string;
   toolbar3?: string;
@@ -166,10 +176,10 @@ export interface RawEditorSettings {
   toolbar7?: string;
   toolbar8?: string;
   toolbar9?: string;
-  toolbar_drawer?: 'floating' | 'sliding';
+  toolbar_mode?: ToolbarMode;
   typeahead_urls?: boolean;
   url_converter?: URLConverter;
-  url_converter_scope?: {};
+  url_converter_scope?: any;
   urlconverter_callback?: string | URLConverterCallback;
   valid_children?: string;
   valid_classes?: string | Record<string, string>;
@@ -181,6 +191,7 @@ export interface RawEditorSettings {
   width?: number | string;
 
   // Deprecated settings
+  toolbar_drawer?: false | 'floating' | 'sliding' | 'scrolling';
   editor_deselector?: string;
   editor_selector?: string;
   elements?: string;
@@ -213,8 +224,15 @@ export interface RawEditorSettings {
   [key: string]: any;
 }
 
+export interface RawEditorSettings extends BaseEditorSettings {
+  external_plugins?: Record<string, string>;
+  mobile?: RawEditorSettings;
+  plugins?: string | string[];
+}
+
 // EditorSettings.ts processes the plugins setting to turn it into a string
-export interface EditorSettings extends RawEditorSettings {
-  mobile?: EditorSettings;
-  plugins?: string;
+// and merges in the mobile settings
+export interface EditorSettings extends BaseEditorSettings {
+  external_plugins: Record<string, string>;
+  plugins: string;
 }

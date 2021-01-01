@@ -15,7 +15,7 @@ const schema: () => FieldProcessorAdt[] = Fun.constant([
   FieldSchema.strict('lazySink'),
   FieldSchema.option('dragBlockClass'),
   FieldSchema.defaultedFunction('getBounds', Boxes.win),
-  FieldSchema.defaulted('useTabstopAt', Fun.constant(true)),
+  FieldSchema.defaulted('useTabstopAt', Fun.always),
   FieldSchema.defaulted('eventOrder', {}),
   SketchBehaviours.field('modalBehaviours', [ Keying ]),
 
@@ -26,18 +26,18 @@ const schema: () => FieldProcessorAdt[] = Fun.constant([
 const basic = { sketch: Fun.identity };
 
 const parts: () => PartType.PartTypeAdt[] = Fun.constant([
-  PartType.optional({
+  PartType.optional<ModalDialogDetail>({
     name: 'draghandle',
-    overrides (detail: ModalDialogDetail, spec) {
+    overrides(detail: ModalDialogDetail, spec) {
       return {
         behaviours: Behaviour.derive([
           Dragging.config({
             mode: 'mouse',
-            getTarget (handle) {
+            getTarget(handle) {
               return SelectorFind.ancestor(handle, '[role="dialog"]').getOr(handle);
             },
             blockerClass: detail.dragBlockClass.getOrDie(
-              // TODO: Support errors in Option getOrDie.
+              // TODO: Support errors in Optional getOrDie.
               new Error(
                 'The drag blocker class was not specified for a dialog with a drag handle: \n' +
                 JSON.stringify(spec, null, 2)
@@ -50,39 +50,39 @@ const parts: () => PartType.PartTypeAdt[] = Fun.constant([
     }
   }),
 
-  PartType.required({
-    schema:  [ FieldSchema.strict('dom') ],
+  PartType.required<ModalDialogDetail>({
+    schema: [ FieldSchema.strict('dom') ],
     name: 'title'
   }),
 
-  PartType.required({
+  PartType.required<ModalDialogDetail>({
     factory: basic,
-    schema:  [ FieldSchema.strict('dom') ],
+    schema: [ FieldSchema.strict('dom') ],
     name: 'close'
   }),
 
-  PartType.required({
+  PartType.required<ModalDialogDetail>({
     factory: basic,
     schema:  [ FieldSchema.strict('dom') ],
     name: 'body'
   }),
 
-  PartType.optional({
+  PartType.optional<ModalDialogDetail>({
     factory: basic,
     schema:  [ FieldSchema.strict('dom') ],
     name: 'footer'
   }),
 
-  PartType.external({
+  PartType.external<ModalDialogDetail>({
     factory: {
-      sketch: (spec, detail) => {
+      sketch: (spec, detail) =>
         // Merging should take care of the uid
-        return {
+        ({
           ...spec,
           dom: detail.dom,
           components: detail.components
-        };
-      }
+        })
+
     },
     schema: [
       FieldSchema.defaulted('dom', {

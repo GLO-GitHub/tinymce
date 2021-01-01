@@ -1,26 +1,41 @@
-import { MenuTypes, ItemTypes } from '@ephox/alloy';
+import { ItemTypes, MenuTypes } from '@ephox/alloy';
 import { ValueSchema } from '@ephox/boulder';
-import { Types } from '@ephox/bridge';
-import { console } from '@ephox/dom-globals';
-import { Arr, Option } from '@ephox/katamari';
-
-import { forCollection, forSwatch, forToolbar } from './MenuStructures';
+import { InlineContent, Menu, Toolbar } from '@ephox/bridge';
+import { Arr, Optional } from '@ephox/katamari';
 import { components as menuComponents, dom as menuDom } from './MenuParts';
-import { SingleMenuItemApi } from './SingleMenuTypes';
 
-export const hasIcon = (item) => item.icon !== undefined || item.type === 'togglemenuitem' || item.type === 'choicemenuitem';
-export const menuHasIcons = (xs: SingleMenuItemApi[]) => Arr.exists(xs, hasIcon);
+import { forCollection, forHorizontalCollection, forSwatch, forToolbar } from './MenuStructures';
+import { SingleMenuItemSpec } from './SingleMenuTypes';
 
-export const handleError = (error: ValueSchema.SchemaError<any>): Option<ItemTypes.ItemSpec> => {
-  // tslint:disable-next-line:no-console
+export const menuHasIcons = (xs: Array<SingleMenuItemSpec | Menu.CardMenuItemSpec | InlineContent.AutocompleterItemSpec>) => Arr.exists(xs, (item) => 'icon' in item && item.icon !== undefined);
+
+export interface PartialMenuSpec {
+  value: string;
+  dom: MenuTypes.MenuSpec['dom'];
+  components: MenuTypes.MenuSpec['components'];
+  items: MenuTypes.MenuSpec['items'];
+}
+
+export const handleError = (error: ValueSchema.SchemaError<any>): Optional<ItemTypes.ItemSpec> => {
+  // eslint-disable-next-line no-console
   console.error(ValueSchema.formatError(error));
-  // tslint:disable-next-line:no-console
+  // eslint-disable-next-line no-console
   console.log(error);
-  return Option.none();
+  return Optional.none();
+};
+
+export const createHorizontalPartialMenuWithAlloyItems = (value: string, _hasIcons: boolean, items, _columns: Toolbar.ColumnTypes, _presets: Toolbar.PresetTypes): PartialMenuSpec => {
+  const structure = forHorizontalCollection(items);
+  return {
+    value,
+    dom: structure.dom,
+    components: structure.components,
+    items
+  };
 };
 
 // TODO: Potentially make this private again.
-export const createPartialMenuWithAlloyItems = (value: string, hasIcons: boolean, items, columns: Types.ColumnTypes, presets: Types.PresetTypes): Partial<MenuTypes.MenuSpec> => {
+export const createPartialMenuWithAlloyItems = (value: string, hasIcons: boolean, items, columns: Toolbar.ColumnTypes, presets: Toolbar.PresetTypes): PartialMenuSpec => {
   if (presets === 'color') {
     const structure = forSwatch(columns);
     return {
@@ -73,7 +88,7 @@ export const createPartialMenuWithAlloyItems = (value: string, hasIcons: boolean
 
   return {
     value,
-    dom:  menuDom(hasIcons, columns, presets),
+    dom: menuDom(hasIcons, columns, presets),
     components: menuComponents,
     items
   };

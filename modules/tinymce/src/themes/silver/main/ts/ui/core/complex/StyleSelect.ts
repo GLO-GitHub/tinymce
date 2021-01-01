@@ -6,59 +6,50 @@
  */
 
 import { AlloyComponent, AlloyTriggers } from '@ephox/alloy';
-import { Element } from '@ephox/dom-globals';
-import { Arr, Fun, Option } from '@ephox/katamari';
+import { Arr, Optional } from '@ephox/katamari';
 import Editor from 'tinymce/core/api/Editor';
-import { getStyleFormats } from 'tinymce/themes/silver/ui/core/complex/StyleFormat';
+import { BlockFormat, InlineFormat } from 'tinymce/core/api/fmt/Format';
 import { UiFactoryBackstage } from '../../../backstage/Backstage';
 import { updateMenuText } from '../../dropdown/CommonDropdown';
 import { createMenuItems, createSelectButton, SelectSpec } from './BespokeSelect';
 import { AdvancedSelectDataset, SelectDataset } from './SelectDatasets';
-import { findNearest, getCurrentSelectionParents } from './utils/FormatDetection';
+import { getStyleFormats } from './StyleFormat';
+import { findNearest } from './utils/FormatDetection';
 import { onActionToggleFormat } from './utils/Utils';
 
 const getSpec = (editor: Editor, dataset: SelectDataset): SelectSpec => {
-  const isSelectedFor = (format: string) => {
-    return () => {
-      return editor.formatter.match(format);
-    };
-  };
+  const isSelectedFor = (format: string) => () => editor.formatter.match(format);
 
   const getPreviewFor = (format: string) => () => {
     const fmt = editor.formatter.get(format);
-    return fmt !== undefined ? Option.some({
-      tag: fmt.length > 0 ? fmt[0].inline || fmt[0].block || 'div' : 'div',
-      styleAttr: editor.formatter.getCssText(format)
-    }) : Option.none();
+    return fmt !== undefined ? Optional.some({
+      tag: fmt.length > 0 ? (fmt[0] as InlineFormat).inline || (fmt[0] as BlockFormat).block || 'div' : 'div',
+      styles: editor.dom.parseStyle(editor.formatter.getCssText(format))
+    }) : Optional.none();
   };
 
-  const updateSelectMenuText = (parents: Element[], comp: AlloyComponent) => {
+  const updateSelectMenuText = (comp: AlloyComponent) => {
     const getFormatItems = (fmt) => {
       const subs = fmt.items;
-      return subs !== undefined && subs.length > 0 ? Arr.bind(subs, getFormatItems) : [ { title: fmt.title, format: fmt.format } ];
+      return subs !== undefined && subs.length > 0 ? Arr.bind(subs, getFormatItems) : [{ title: fmt.title, format: fmt.format }];
     };
     const flattenedItems = Arr.bind(getStyleFormats(editor), getFormatItems);
-    const detectedFormat = findNearest(editor, () => flattenedItems, parents);
+    const detectedFormat = findNearest(editor, () => flattenedItems);
     const text = detectedFormat.fold(() => 'Paragraph', (fmt) => fmt.title);
     AlloyTriggers.emitWith(comp, updateMenuText, {
       text
     });
   };
 
-  const nodeChangeHandler = Option.some((comp: AlloyComponent) => {
-    return (e) => updateSelectMenuText(e.parents, comp);
-  });
+  const nodeChangeHandler = Optional.some((comp: AlloyComponent) => () => updateSelectMenuText(comp));
 
-  const setInitialValue = Option.some((comp: AlloyComponent) => {
-    const parents = getCurrentSelectionParents(editor);
-    updateSelectMenuText(parents, comp);
-  });
+  const setInitialValue = Optional.some((comp: AlloyComponent) => updateSelectMenuText(comp));
 
   return {
     tooltip: 'Formats',
-    icon: Option.none(),
+    icon: Optional.none(),
     isSelectedFor,
-    getCurrentValue: Fun.constant(Option.none()),
+    getCurrentValue: Optional.none,
     getPreviewFor,
     onAction: onActionToggleFormat(editor),
     setInitialValue,

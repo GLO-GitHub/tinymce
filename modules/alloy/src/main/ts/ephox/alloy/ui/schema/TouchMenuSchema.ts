@@ -1,6 +1,6 @@
 import { FieldProcessorAdt, FieldSchema } from '@ephox/boulder';
 import { Fun } from '@ephox/katamari';
-import { Height, Location, Width } from '@ephox/sugar';
+import { Height, SugarLocation, Width } from '@ephox/sugar';
 
 import { Coupling } from '../../api/behaviour/Coupling';
 import { Toggling } from '../../api/behaviour/Toggling';
@@ -12,15 +12,16 @@ import * as SketcherFields from '../../data/SketcherFields';
 import * as InternalSink from '../../parts/InternalSink';
 import * as PartType from '../../parts/PartType';
 import * as Layout from '../../positioning/layout/Layout';
+import { TouchMenuDetail } from '../types/TouchMenuTypes';
 
 const anchorAtCentre = (component: AlloyComponent) => {
-  const pos = Location.absolute(component.element());
-  const w = Width.get(component.element());
-  const h = Height.get(component.element());
+  const pos = SugarLocation.absolute(component.element);
+  const w = Width.get(component.element);
+  const h = Height.get(component.element);
   return {
     anchor: 'makeshift',
-    x: pos.left() + w / 2,
-    y: pos.top() + h / 2,
+    x: pos.left + w / 2,
+    y: pos.top + h / 2,
     layouts: {
       onLtr: () => [ Layout.south, Layout.north ],
       onRtl: () => [ Layout.south, Layout.north ]
@@ -56,14 +57,14 @@ const schema: () => FieldProcessorAdt[] = Fun.constant([
 ));
 
 const parts: () => PartType.PartTypeAdt[] = Fun.constant([
-  PartType.external({
+  PartType.external<TouchMenuDetail>({
     schema: [
       Fields.itemMarkers()
     ],
     name: 'menu'
   }),
 
-  PartType.external({
+  PartType.external<TouchMenuDetail>({
     schema: [ FieldSchema.strict('dom') ],
     name: 'view'
   }),

@@ -1,32 +1,30 @@
-import { document } from '@ephox/dom-globals';
 import { PlatformDetection } from '@ephox/sand';
-import { Class, Css, Element, Traverse } from '@ephox/sugar';
+import { Class, Css, SugarElement, SugarPosition, Traverse } from '@ephox/sugar';
 
 import * as Behaviour from 'ephox/alloy/api/behaviour/Behaviour';
 import { Dragging } from 'ephox/alloy/api/behaviour/Dragging';
 import { Unselecting } from 'ephox/alloy/api/behaviour/Unselecting';
+import { AlloyComponent } from 'ephox/alloy/api/component/ComponentApi';
 import * as Attachment from 'ephox/alloy/api/system/Attachment';
 import * as Gui from 'ephox/alloy/api/system/Gui';
 import { Button } from 'ephox/alloy/api/ui/Button';
 import { Container } from 'ephox/alloy/api/ui/Container';
 import * as HtmlDisplay from 'ephox/alloy/demo/HtmlDisplay';
-import { AlloyComponent } from 'ephox/alloy/api/component/ComponentApi';
-import { SugarPosition } from 'ephox/alloy/alien/TypeDefinitions';
 
 export default (): void => {
   const gui = Gui.create();
-  const body = Element.fromDom(document.body);
-  Class.add(gui.element(), 'gui-root-demo-container');
-  // Css.set(gui.element(), 'direction', 'rtl');
+  const body = SugarElement.fromDom(document.body);
+  Class.add(gui.element, 'gui-root-demo-container');
+  // Css.set(gui.element, 'direction', 'rtl');
 
   Attachment.attachSystem(body, gui);
   Css.set(body, 'margin-bottom', '2000px');
 
-  const onDrag = (comp: AlloyComponent, targetElement: Element, delta: SugarPosition) => {
+  const onDrag = (comp: AlloyComponent, targetElement: SugarElement, delta: SugarPosition) => {
     Traverse.parent(targetElement).bind(Traverse.parent).bind(Traverse.firstChild).each((box) => {
       Css.getRaw(box, 'height').each((h) => {
         const parsedHeight = parseInt(h, 10);
-        const newHeight = parsedHeight + delta.top();
+        const newHeight = parsedHeight + delta.top;
         Css.set(box, 'height', newHeight + 'px');
       });
     });
@@ -75,18 +73,12 @@ export default (): void => {
               },
 
               buttonBehaviours: Behaviour.derive([
-                Dragging.config(
-                  PlatformDetection.detect().deviceType.isTouch() ? {
-                    mode: 'touch',
-                    repositionTarget: false,
-                    onDrag
-                  } : {
-                    mode: 'mouse',
-                    blockerClass: 'blocker',
-                    repositionTarget: false,
-                    onDrag
-                  }
-                ),
+                Dragging.config({
+                  mode: PlatformDetection.detect().deviceType.isTouch() ? 'touch' : 'mouse',
+                  blockerClass: 'blocker',
+                  repositionTarget: false,
+                  onDrag
+                }),
                 Unselecting.config({ })
               ]),
               eventOrder: {

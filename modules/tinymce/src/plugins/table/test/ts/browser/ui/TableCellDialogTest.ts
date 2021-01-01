@@ -1,9 +1,13 @@
-import { Log, Pipeline } from '@ephox/agar';
-import { UnitTest } from '@ephox/bedrock';
-import { TinyApis, TinyLoader } from '@ephox/mcagar';
+import { Assertions, Log, Pipeline, Step } from '@ephox/agar';
+import { UnitTest } from '@ephox/bedrock-client';
+import { Arr } from '@ephox/katamari';
+import { TinyApis, TinyLoader, TinyUi } from '@ephox/mcagar';
+import { SugarElement, SugarNode } from '@ephox/sugar';
+import { EditorEvent } from 'tinymce/core/api/util/EventDispatcher';
+import Editor from 'tinymce/core/api/Editor';
 import Plugin from 'tinymce/plugins/table/Plugin';
 import SilverTheme from 'tinymce/themes/silver/Theme';
-import TableTestUtils from '../../module/test/TableTestUtils';
+import * as TableTestUtils from '../../module/test/TableTestUtils';
 
 UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success, failure) => {
   Plugin();
@@ -12,14 +16,35 @@ UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success
   const generalSelectors = {
     width: 'label.tox-label:contains(Width) + input.tox-textfield',
     height: 'label.tox-label:contains(Height) + input.tox-textfield',
-    celltype: 'label.tox-label:contains(Cell type) + div.tox-selectfield>select',
-    scope: 'label.tox-label:contains(Scope) + div.tox-selectfield>select',
-    halign: 'label.tox-label:contains(H Align) + div.tox-selectfield>select',
-    valign: 'label.tox-label:contains(V Align) + div.tox-selectfield>select'
+    celltype: 'label.tox-label:contains(Cell type) + div.tox-listboxfield > .tox-listbox',
+    scope: 'label.tox-label:contains(Scope) + div.tox-listboxfield > .tox-listbox',
+    halign: 'label.tox-label:contains(H Align) + div.tox-listboxfield > .tox-listbox',
+    valign: 'label.tox-label:contains(V Align) + div.tox-listboxfield > .tox-listbox'
   };
+
+  let events = [];
+  const logEvent = (event: EditorEvent<{}>) => {
+    events.push(event);
+  };
+
+  const sClearEvents = Step.sync(() => events = []);
+
+  const defaultEvents = [ 'tablemodified' ];
+  const sAssertEvents = (expectedEvents: string[] = defaultEvents) => Step.sync(() => {
+    if (events.length > 0) {
+      Arr.each(events, (event) => {
+        if (event.type === 'tablemodified') {
+          const tableElm = SugarElement.fromDom(event.table);
+          Assertions.assertEq('Expected events should have been fired', true, SugarNode.isTag('table')(tableElm));
+        }
+      });
+    }
+    Assertions.assertEq('Expected events should have been fired', expectedEvents, Arr.map(events, (event) => event.type));
+  });
 
   TinyLoader.setupLight((editor, onSuccess, onFailure) => {
     const tinyApis = TinyApis(editor);
+    const tinyUi = TinyUi(editor);
 
     const baseHtml = '<table>' +
       '<tbody>' +
@@ -39,7 +64,7 @@ UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success
       celltype: 'td',
       halign: '',
       valign: '',
-      scope: '',
+      scope: ''
     };
 
     const baseAdvData = {
@@ -51,43 +76,45 @@ UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success
       scope: '',
       backgroundcolor: '',
       bordercolor: '',
-      borderstyle: ''
+      borderstyle: '',
+      border: ''
     };
 
-    const baseGetTest = () => {
-      return Log.stepsAsStep('TBA', 'Table: Table cell properties dialog (get data from basic cell)', [
-        tinyApis.sSetSetting('table_cell_advtab', false),
-        tinyApis.sSetContent(baseHtml),
-        tinyApis.sSelect('td', [0]),
-        TableTestUtils.sOpenTableDialog,
-        TableTestUtils.sAssertDialogValues(baseData, false, generalSelectors),
-        TableTestUtils.sClickDialogButton('close dialog', false)
-      ]);
-    };
+    const baseGetTest = () => Log.stepsAsStep('TBA', 'Table: Table cell properties dialog (get data from basic cell)', [
+      sAssertEvents([]),
+      tinyApis.sSetSetting('table_cell_advtab', false),
+      tinyApis.sSetContent(baseHtml),
+      tinyApis.sSelect('td', [ 0 ]),
+      TableTestUtils.sOpenTableDialog(tinyUi),
+      TableTestUtils.sAssertDialogValues(baseData, false, generalSelectors),
+      TableTestUtils.sClickDialogButton('close dialog', false),
+      sAssertEvents([])
+    ]);
 
-    const baseGetSetTest = () => {
-      return Log.stepsAsStep('TBA', 'Table: Table cell properties dialog (get/set data from/to basic cell)', [
-        tinyApis.sSetSetting('table_cell_advtab', false),
-        tinyApis.sSetContent(baseHtml),
-        tinyApis.sSelect('td', [0]),
-        TableTestUtils.sOpenTableDialog,
-        TableTestUtils.sAssertDialogValues(baseData, false, generalSelectors),
-        TableTestUtils.sSetDialogValues({
-          width: '100',
-          height: '101',
-          celltype: 'td',
-          scope: '',
-          halign: '',
-          valign: '',
-        }, false, generalSelectors),
-        TableTestUtils.sClickDialogButton('close dialog', true),
-        tinyApis.sAssertContent('<table><tbody><tr><td style="width: 100px; height: 101px;">a</td><td>b</td></tr></tbody></table>'),
-      ]);
-    };
+    const baseGetSetTest = () => Log.stepsAsStep('TBA', 'Table: Table cell properties dialog (get/set data from/to basic cell)', [
+      sAssertEvents([]),
+      tinyApis.sSetSetting('table_cell_advtab', false),
+      tinyApis.sSetContent(baseHtml),
+      tinyApis.sSelect('td', [ 0 ]),
+      TableTestUtils.sOpenTableDialog(tinyUi),
+      TableTestUtils.sAssertDialogValues(baseData, false, generalSelectors),
+      TableTestUtils.sSetDialogValues({
+        width: '100',
+        height: '101',
+        celltype: 'td',
+        scope: '',
+        halign: '',
+        valign: ''
+      }, false, generalSelectors),
+      TableTestUtils.sClickDialogButton('close dialog', true),
+      tinyApis.sAssertContent('<table><tbody><tr><td style="width: 100px; height: 101px;">a</td><td>b</td></tr></tbody></table>'),
+      sAssertEvents(),
+      sClearEvents
+    ]);
 
     const advGetTest = () => {
       const complexHtml = '<table><tr><th style="text-align: right; vertical-align: top; width: 10px; height: 11px; ' +
-      'border-color: red; background-color: blue; border-style: dashed;" scope="row">X</th></tr></table>';
+      'border-width: 2px; border-color: red; background-color: blue; border-style: dashed;" scope="row">X</th></tr></table>';
 
       const complexData = {
         width: '10px',
@@ -99,15 +126,17 @@ UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success
         borderstyle: 'dashed',
         bordercolor: 'red',
         backgroundcolor: 'blue',
+        border: '2px'
       };
 
       return Log.stepsAsStep('TBA', 'Table: Table cell properties dialog (get data from advanced cell)', [
         tinyApis.sSetSetting('table_cell_advtab', true),
         tinyApis.sSetContent(complexHtml),
-        tinyApis.sSelect('th', [0]),
-        TableTestUtils.sOpenTableDialog,
+        tinyApis.sSelect('th', [ 0 ]),
+        TableTestUtils.sOpenTableDialog(tinyUi),
         TableTestUtils.sAssertDialogValues(complexData, true, generalSelectors),
-        TableTestUtils.sClickDialogButton('close dialog', false)
+        TableTestUtils.sClickDialogButton('close dialog', false),
+        sAssertEvents([])
       ]);
     };
 
@@ -122,19 +151,23 @@ UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success
         backgroundcolor: 'blue',
         bordercolor: 'red',
         borderstyle: 'dashed',
+        border: ''
       };
 
       const advHtml = '<table><tbody><tr><th style="width: 10px; height: 11px; vertical-align: top; text-align: right; ' +
       'border-color: red; border-style: dashed; background-color: blue;" scope="row">X</th></tr></tbody></table>';
 
       return Log.stepsAsStep('TBA', 'Table: Table cell properties dialog (update all, including advanced)', [
+        sAssertEvents([]),
         tinyApis.sSetSetting('table_cell_advtab', true),
         tinyApis.sSetContent('<table><tr><td>X</td></tr></table>'),
-        tinyApis.sSelect('td', [0]),
-        TableTestUtils.sOpenTableDialog,
+        tinyApis.sSelect('td', [ 0 ]),
+        TableTestUtils.sOpenTableDialog(tinyUi),
         TableTestUtils.sSetDialogValues(advData, true, generalSelectors),
         TableTestUtils.sClickDialogButton('submit dialog', true),
-        tinyApis.sAssertContent(advHtml)
+        tinyApis.sAssertContent(advHtml),
+        sAssertEvents([ 'newcell', 'tablemodified' ]),
+        sClearEvents
       ]);
     };
 
@@ -167,16 +200,20 @@ UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success
         borderstyle: 'dashed',
         bordercolor: '',
         backgroundcolor: 'red',
+        border: ''
       };
 
       return Log.stepsAsStep('TBA', 'Table: Table cell properties dialog update multiple cells', [
+        sAssertEvents([]),
         tinyApis.sSetContent(initialHtml),
-        tinyApis.sSelect('td:nth-child(2)', [0]),
-        TableTestUtils.sOpenTableDialog,
+        tinyApis.sSelect('td:nth-child(2)', [ 0 ]),
+        TableTestUtils.sOpenTableDialog(tinyUi),
         TableTestUtils.sAssertDialogValues(baseAdvData, true, generalSelectors),
         TableTestUtils.sSetDialogValues(newData, true, generalSelectors),
         TableTestUtils.sClickDialogButton('submit', true),
         tinyApis.sAssertContent(newHtml),
+        sAssertEvents(),
+        sClearEvents
       ]);
     };
 
@@ -194,6 +231,7 @@ UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success
         backgroundcolor: 'blue',
         bordercolor: 'red',
         borderstyle: 'dashed',
+        border: ''
       };
 
       const emptyTable = '<table><tbody><tr><th>X</th></tr></tbody></table>';
@@ -208,22 +246,26 @@ UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success
         backgroundcolor: '',
         bordercolor: '',
         borderstyle: '',
+        border: ''
       };
 
       return Log.stepsAsStep('TBA', 'Table: Remove all styles', [
+        sAssertEvents([]),
         tinyApis.sSetContent(advHtml),
-        tinyApis.sSelect('th', [0]),
-        TableTestUtils.sOpenTableDialog,
+        tinyApis.sSelect('th', [ 0 ]),
+        TableTestUtils.sOpenTableDialog(tinyUi),
         TableTestUtils.sAssertDialogValues(advData, true, generalSelectors),
         TableTestUtils.sSetDialogValues(emptyData, true, generalSelectors),
         TableTestUtils.sClickDialogButton('submit dialog', true),
-        tinyApis.sAssertContent(emptyTable)
+        tinyApis.sAssertContent(emptyTable),
+        sAssertEvents([ 'tablemodified' ]),
+        sClearEvents
       ]);
     };
 
     const execCommandTest = () => {
       const advHtml = '<table><tbody><tr><th style="width: 10px; height: 11px; vertical-align: top; text-align: right; ' +
-      'border-color: red; border-style: dashed; background-color: blue;" scope="row">X</th></tr></tbody></table>';
+      'border-width: thick; border-color: red; border-style: dashed; background-color: blue;" scope="row">X</th></tr></tbody></table>';
 
       const advData = {
         width: '10px',
@@ -235,14 +277,16 @@ UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success
         backgroundcolor: 'blue',
         bordercolor: 'red',
         borderstyle: 'dashed',
+        border: 'thick'
       };
 
       return Log.stepsAsStep('TBA', 'Table: Open dialog via execCommand', [
         tinyApis.sSetContent(advHtml),
-        tinyApis.sSelect('th', [0]),
+        tinyApis.sSelect('th', [ 0 ]),
         tinyApis.sExecCommand('mceTableCellProps'),
         TableTestUtils.sAssertDialogValues(advData, true, generalSelectors),
         TableTestUtils.sClickDialogButton('submit dialog', false),
+        sAssertEvents([])
       ]);
     };
 
@@ -257,31 +301,37 @@ UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success
         borderstyle: 'dashed',
         bordercolor: 'red',
         backgroundcolor: 'blue',
+        border: ''
       };
 
       const advHtml = '<table><tbody><tr><th style="width: 10px; height: 11px; vertical-align: top; text-align: right; ' +
       'border-color: red; border-style: dashed; background-color: blue;" scope="row">a</th><td>b</td></tr></tbody></table>';
 
       return Log.stepsAsStep('TBA', 'Table: Test cancel changes nothing and save does', [
+        sAssertEvents([]),
         tinyApis.sSetSetting('table_cell_advtab', true),
         tinyApis.sSetContent(baseHtml),
-        tinyApis.sSelect('td', [0]),
-        TableTestUtils.sOpenTableDialog,
+        tinyApis.sSelect('td', [ 0 ]),
+        TableTestUtils.sOpenTableDialog(tinyUi),
         TableTestUtils.sAssertDialogValues(baseAdvData, true, generalSelectors),
         TableTestUtils.sClickDialogButton('click cancel', false),
+        sAssertEvents([]),
+        sClearEvents,
         tinyApis.sAssertContent(noSelectBaseHtml),
-        TableTestUtils.sOpenTableDialog,
+        TableTestUtils.sOpenTableDialog(tinyUi),
         TableTestUtils.sAssertDialogValues(baseAdvData, true, generalSelectors),
         TableTestUtils.sSetDialogValues(advData, true, generalSelectors),
         TableTestUtils.sClickDialogButton('submit dialog', true),
         tinyApis.sAssertContent(advHtml),
-        TableTestUtils.sOpenTableDialog,
+        TableTestUtils.sOpenTableDialog(tinyUi),
         TableTestUtils.sAssertDialogValues(advData, true, generalSelectors),
+        sAssertEvents([ 'newcell', 'tablemodified' ]),
+        sClearEvents
       ]);
     };
 
     Pipeline.async({}, [
-      tinyApis.sFocus,
+      tinyApis.sFocus(),
       baseGetTest(),
       baseGetSetTest(),
       advGetTest(),
@@ -298,7 +348,11 @@ UnitTest.asynctest('browser.tinymce.plugins.table.TableCellDialogTest', (success
     toolbar: 'tablecellprops',
     indent: false,
     valid_styles: {
-      '*': 'width,height,vertical-align,text-align,float,border-color,border-style,background-color,border,padding,border-spacing,border-collapse'
+      '*': 'width,height,vertical-align,text-align,float,border-color,border-style,background-color,border,padding,border-spacing,border-collapse,border-width'
     },
+    setup: (editor: Editor) => {
+      editor.on('tablemodified', logEvent);
+      editor.on('newcell', logEvent);
+    }
   }, success, failure);
 });

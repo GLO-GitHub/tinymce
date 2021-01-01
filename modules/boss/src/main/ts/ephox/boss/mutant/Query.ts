@@ -1,7 +1,7 @@
-import Properties from './Properties';
-import Up from './Up';
-import { Arr, Option } from '@ephox/katamari';
+import { Arr, Optional } from '@ephox/katamari';
 import { Gene } from '../api/Gene';
+import * as Properties from './Properties';
+import * as Up from './Up';
 
 const extract = function (item: Gene): string[] {
   const self = item.id;
@@ -9,6 +9,8 @@ const extract = function (item: Gene): string[] {
   return [ self ].concat(rest);
 };
 
+// TODO: This is broken. See TINY-6501, but the gist is that the behaviour of this function should match
+//  https://developer.mozilla.org/en-US/docs/Web/API/Node/compareDocumentPosition and it doesn't.
 const comparePosition = function (item: Gene, other: Gene) {
   // horribly inefficient
   const top = Up.top(item);
@@ -27,25 +29,25 @@ const comparePosition = function (item: Gene, other: Gene) {
   }).getOr(0);
 };
 
-const prevSibling = function (item: Gene): Option<Gene> {
+const prevSibling = function (item: Gene): Optional<Gene> {
   const parent = Properties.parent(item);
   const kin = parent.map(Properties.children).getOr([]);
   const itemIndex = Arr.findIndex(kin, function (x) { return item.id === x.id; });
   return itemIndex.bind(function (iIndex) {
-    return iIndex > 0 ? Option.some(kin[iIndex - 1]) : Option.none();
+    return iIndex > 0 ? Optional.some(kin[iIndex - 1]) : Optional.none();
   });
 };
 
-const nextSibling = function (item: Gene): Option<Gene> {
+const nextSibling = function (item: Gene): Optional<Gene> {
   const parent = Properties.parent(item);
   const kin = parent.map(Properties.children).getOr([]);
   const itemIndex = Arr.findIndex(kin, function (x) { return item.id === x.id; });
   return itemIndex.bind(function (iIndex) {
-    return iIndex < kin.length - 1 ? Option.some(kin[iIndex + 1]) : Option.none();
+    return iIndex < kin.length - 1 ? Optional.some(kin[iIndex + 1]) : Optional.none();
   });
 };
 
-export default {
+export {
   comparePosition,
   prevSibling,
   nextSibling

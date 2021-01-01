@@ -1,9 +1,9 @@
-import { AlloyComponent, AlloyTriggers, Behaviour, Focusing, Slider } from '@ephox/alloy';
+import { AlloyComponent, AlloyTriggers, Behaviour, Focusing, SketchSpec, Slider } from '@ephox/alloy';
 import { Fun } from '@ephox/katamari';
 import { sliderUpdate } from '../ColourEvents';
 
-const sliderFactory = (translate: (key: string) => string, getClass: (key: string) => string) => {
-  const spectrum = Slider.parts().spectrum({
+const sliderFactory = (translate: (key: string) => string, getClass: (key: string) => string): SketchSpec => {
+  const spectrum = Slider.parts.spectrum({
     dom: {
       tag: 'div',
       classes: [ getClass('hue-slider-spectrum') ],
@@ -13,7 +13,7 @@ const sliderFactory = (translate: (key: string) => string, getClass: (key: strin
     }
   });
 
-  const thumb = Slider.parts().thumb({
+  const thumb = Slider.parts.thumb({
     dom: {
       tag: 'div',
       classes: [ getClass('hue-slider-thumb') ],
@@ -34,7 +34,7 @@ const sliderFactory = (translate: (key: string) => string, getClass: (key: strin
     rounded: false,
     model: {
       mode: 'y',
-      getInitialValue: Fun.constant({y: Fun.constant(0) })
+      getInitialValue: Fun.constant({ y: 0 })
     },
     components: [
       spectrum,
@@ -45,13 +45,13 @@ const sliderFactory = (translate: (key: string) => string, getClass: (key: strin
     ]),
 
     onChange: (slider: AlloyComponent, _thumb: any, value: any) => {
-      AlloyTriggers.emitWith(slider, sliderUpdate(), {
+      AlloyTriggers.emitWith(slider, sliderUpdate, {
         value
       });
     }
   });
 };
 
-export default {
+export {
   sliderFactory
 };

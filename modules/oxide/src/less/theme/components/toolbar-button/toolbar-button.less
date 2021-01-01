@@ -10,11 +10,11 @@
 // When making changes here, please review menubar/menubar.less and menubar/menubar-button.less
 //
 
-@toolbar-button-background-color: none;
+@toolbar-button-background-color: transparent;
 @toolbar-button-border-radius: 3px;
 @toolbar-button-border: 0;
 @toolbar-button-box-shadow: none;
-@toolbar-button-chevron-color: @text-color-muted;
+@toolbar-button-chevron-color: fade(@toolbar-button-icon-color, 50%);
 @toolbar-button-chevron-width: @base-value;
 @toolbar-button-font-size: @font-size-sm;
 @toolbar-button-font-style: normal;
@@ -24,7 +24,7 @@
 @toolbar-button-spacing-x: 0;
 @toolbar-button-spacing-y: 2px;
 @toolbar-button-text-color: contrast(@background-color, @color-white, @color-black);
-@toolbar-button-text-transform: normal;
+@toolbar-button-text-transform: none;
 @toolbar-button-width: 34px;
 
 @toolbar-button-hover-background-color: multiply(white, contrast(@background-color, fade(@color-black, 15), fade(@color-black, 85)));
@@ -117,6 +117,10 @@
     border: @toolbar-button-active-border;
     box-shadow: @toolbar-button-active-box-shadow;
     color: @toolbar-button-active-text-color;
+
+    svg {
+      fill: @toolbar-button-active-icon-color;
+    }
   }
 
   .tox-tbtn--disabled,

@@ -1,26 +1,25 @@
-import { Pipeline, Log } from '@ephox/agar';
-import { UnitTest } from '@ephox/bedrock';
+import { Log, Pipeline } from '@ephox/agar';
+import { UnitTest } from '@ephox/bedrock-client';
 import { LegacyUnit, TinyLoader } from '@ephox/mcagar';
 
+import Editor from 'tinymce/core/api/Editor';
 import Tools from 'tinymce/core/api/util/Tools';
 import Plugin from 'tinymce/plugins/table/Plugin';
 import SilverTheme from 'tinymce/themes/silver/Theme';
 
 UnitTest.asynctest('browser.tinymce.plugins.table.ClipboardTest', (success, failure) => {
-  const suite = LegacyUnit.createSuite();
+  const suite = LegacyUnit.createSuite<Editor>();
 
   SilverTheme();
   Plugin();
 
-  const cleanTableHtml = (html) => {
-    return html.replace(/<p>(&nbsp;|<br[^>]+>)<\/p>$/, '');
-  };
+  const cleanTableHtml = (html: string) => html.replace(/<p>(&nbsp;|<br[^>]+>)<\/p>$/, '');
 
-  const selectOne = (editor, start) => {
+  const selectOne = (editor: Editor, start) => {
     start = editor.$(start)[0];
 
-    editor.fire('mousedown', { target: start, button: 0 });
-    editor.fire('mouseup', { target: start, button: 0 });
+    editor.fire('mousedown', { target: start, button: 0 } as MouseEvent);
+    editor.fire('mouseup', { target: start, button: 0 } as MouseEvent);
 
     LegacyUnit.setSelection(editor, start, 0);
   };
@@ -34,6 +33,16 @@ UnitTest.asynctest('browser.tinymce.plugins.table.ClipboardTest', (success, fail
     editor.fire('mouseup', { target: end, button: 0 });
 
     LegacyUnit.setSelection(editor, end, 0);
+  };
+
+  const createRow = (editor: Editor, cellContents: string[]) => {
+    const tr = editor.dom.create('tr');
+
+    Tools.each(cellContents, (html) => {
+      tr.appendChild(editor.dom.create('td', null, html));
+    });
+
+    return tr;
   };
 
   suite.test('selection.getContent with format equal to text', (editor) => {
@@ -61,12 +70,13 @@ UnitTest.asynctest('browser.tinymce.plugins.table.ClipboardTest', (success, fail
       '<table>' +
       '<tr><td>1</td><td>2</td></tr>' +
       '<tr><td>2</td><td>3</td></tr>' +
+      '<tr><td>3</td><td>4</td></tr>' +
       '</table>'
     );
 
     selectOne(editor, 'tr:nth-child(1) td');
     editor.execCommand('mceTableCopyRow');
-    selectOne(editor, 'tr:nth-child(2) td');
+    selectOne(editor, 'tr:nth-child(3) td');
     editor.execCommand('mceTablePasteRowBefore');
 
     LegacyUnit.equal(
@@ -75,13 +85,14 @@ UnitTest.asynctest('browser.tinymce.plugins.table.ClipboardTest', (success, fail
       '<table>' +
       '<tbody>' +
       '<tr><td>1</td><td>2</td></tr>' +
-      '<tr><td>1</td><td>2</td></tr>' +
       '<tr><td>2</td><td>3</td></tr>' +
+      '<tr><td>1</td><td>2</td></tr>' +
+      '<tr><td>3</td><td>4</td></tr>' +
       '</tbody>' +
       '</table>'
     );
 
-    selectOne(editor, 'tr:nth-child(2) td');
+    selectOne(editor, 'tr:nth-child(3) td');
     editor.execCommand('mceTablePasteRowBefore');
 
     LegacyUnit.equal(
@@ -90,9 +101,10 @@ UnitTest.asynctest('browser.tinymce.plugins.table.ClipboardTest', (success, fail
       '<table>' +
       '<tbody>' +
       '<tr><td>1</td><td>2</td></tr>' +
-      '<tr><td>1</td><td>2</td></tr>' +
-      '<tr><td>1</td><td>2</td></tr>' +
       '<tr><td>2</td><td>3</td></tr>' +
+      '<tr><td>1</td><td>2</td></tr>' +
+      '<tr><td>1</td><td>2</td></tr>' +
+      '<tr><td>3</td><td>4</td></tr>' +
       '</tbody>' +
       '</table>'
     );
@@ -374,18 +386,6 @@ UnitTest.asynctest('browser.tinymce.plugins.table.ClipboardTest', (success, fail
   });
 
   suite.test('TestCase-TBA: Table: row clipboard api', (editor) => {
-    let clipboardRows;
-
-    const createRow = (cellContents) => {
-      const tr = editor.dom.create('tr');
-
-      Tools.each(cellContents, (html) => {
-        tr.appendChild(editor.dom.create('td', null, html));
-      });
-
-      return tr;
-    };
-
     editor.setContent(
       '<table>' +
       '<tr><td>1</td><td>2</td></tr>' +
@@ -396,14 +396,14 @@ UnitTest.asynctest('browser.tinymce.plugins.table.ClipboardTest', (success, fail
     LegacyUnit.setSelection(editor, 'tr:nth-child(1) td', 0);
     editor.execCommand('mceTableCopyRow');
 
-    clipboardRows = editor.plugins.table.getClipboardRows();
+    const clipboardRows = editor.plugins.table.getClipboardRows();
 
     LegacyUnit.equal(clipboardRows.length, 1);
     LegacyUnit.equal(clipboardRows[0].tagName, 'TR');
 
     editor.plugins.table.setClipboardRows(clipboardRows.concat([
-      createRow(['a', 'b']),
-      createRow(['c', 'd'])
+      createRow(editor, [ 'a', 'b' ]),
+      createRow(editor, [ 'c', 'd' ])
     ]));
 
     LegacyUnit.setSelection(editor, 'tr:nth-child(2) td', 0);
@@ -424,6 +424,182 @@ UnitTest.asynctest('browser.tinymce.plugins.table.ClipboardTest', (success, fail
     );
   });
 
+  suite.test('TestCase-TINY-6006: Table: mceTablePasteColBefore command', (editor) => {
+    editor.setContent(
+      '<table>' +
+      '<tr><td>1</td><td>2</td><td>3</td></tr>' +
+      '<tr><td>2</td><td>3</td><td>4</td></tr>' +
+      '</table>'
+    );
+
+    selectOne(editor, 'tr td:nth-child(1)');
+    editor.execCommand('mceTableCopyCol');
+    selectOne(editor, 'tr td:nth-child(3)');
+    editor.execCommand('mceTablePasteColBefore');
+
+    LegacyUnit.equal(
+      cleanTableHtml(editor.getContent()),
+
+      '<table>' +
+      '<tbody>' +
+      '<tr><td>1</td><td>2</td><td>1</td><td>3</td></tr>' +
+      '<tr><td>2</td><td>3</td><td>2</td><td>4</td></tr>' +
+      '</tbody>' +
+      '</table>'
+    );
+  });
+
+  suite.test('TestCase-TINY-6006: Table: mceTablePasteColAfter command', (editor) => {
+    editor.setContent(
+      '<table>' +
+      '<tr><td>1</td><td>2</td><td>3</td></tr>' +
+      '<tr><td>2</td><td>3</td><td>4</td></tr>' +
+      '</table>'
+    );
+
+    selectOne(editor, 'tr td:nth-child(2)');
+    editor.execCommand('mceTableCopyCol');
+    selectOne(editor, 'tr td:nth-child(3)');
+    editor.execCommand('mceTablePasteColAfter');
+
+    LegacyUnit.equal(
+      cleanTableHtml(editor.getContent()),
+
+      '<table>' +
+      '<tbody>' +
+      '<tr><td>1</td><td>2</td><td>3</td><td>2</td></tr>' +
+      '<tr><td>2</td><td>3</td><td>4</td><td>3</td></tr>' +
+      '</tbody>' +
+      '</table>'
+    );
+  });
+
+  suite.test('TestCase-TINY-6006: Table: Copy/paste several cols with colspans', (editor) => {
+    editor.setContent(
+      '<table>' +
+      '<tbody>' +
+      '<tr><td colspan="2">1</td><td>3</td></tr>' +
+      '<tr><td>1</td><td colspan="2">2</td></tr>' +
+      '<tr><td>1</td><td>2</td><td>3</td></tr>' +
+      '</tbody>' +
+      '</table>'
+    );
+
+    selectRangeXY(editor, 'table tr:nth-child(1) td:nth-child(1)', 'table tr:nth-child(2) td:nth-child(2)');
+    editor.execCommand('mceTableCopyCol');
+
+    selectOne(editor, 'table tr:nth-child(1) td:nth-child(2)');
+    editor.execCommand('mceTablePasteColAfter');
+
+    LegacyUnit.equal(
+      cleanTableHtml(editor.getContent()),
+      '<table>' +
+      '<tbody>' +
+      '<tr><td colspan="2">1</td><td>3</td><td colspan="2">1</td><td>3</td></tr>' +
+      '<tr><td>1</td><td colspan="2">2</td><td>1</td><td colspan="2">2</td></tr>' +
+      '<tr><td>1</td><td>2</td><td>3</td><td>1</td><td>2</td><td>3</td></tr>' +
+      '</tbody>' +
+      '</table>'
+    );
+  });
+
+  suite.test('TestCase-TINY-6006: Table: col clipboard api', (editor) => {
+    editor.setContent(
+      '<table>' +
+      '<tr><td>1</td><td>2</td></tr>' +
+      '<tr><td>2</td><td>3</td></tr>' +
+      '</table>'
+    );
+
+    LegacyUnit.setSelection(editor, 'tr td:nth-child(1)', 0);
+    editor.execCommand('mceTableCopyCol');
+
+    const clipboardCols = editor.plugins.table.getClipboardCols();
+
+    LegacyUnit.equal(clipboardCols.length, 2);
+    LegacyUnit.equal(clipboardCols[0].tagName, 'TR');
+    const cells = clipboardCols[0].childNodes;
+    LegacyUnit.equal(cells.length, 1);
+    LegacyUnit.equal(cells[0].nodeName, 'TD');
+
+    editor.plugins.table.setClipboardCols([
+      createRow(editor, [ 'a', 'b' ]),
+      createRow(editor, [ 'c', 'd' ])
+    ]);
+
+    LegacyUnit.setSelection(editor, 'tr td:nth-child(2)', 0);
+    editor.execCommand('mceTablePasteColAfter');
+
+    LegacyUnit.equal(
+      cleanTableHtml(editor.getContent()),
+
+      '<table>' +
+      '<tbody>' +
+      '<tr><td>1</td><td>2</td><td>a</td><td>b</td></tr>' +
+      '<tr><td>2</td><td>3</td><td>c</td><td>d</td></tr>' +
+      '</tbody>' +
+      '</table>'
+    );
+  });
+
+  suite.test('TestCase-TINY-6684: Table: mceTablePasteColBefore command with colgroups', (editor) => {
+    editor.setContent(
+      '<table>' +
+      '<colgroup><col><col></colgroup>' +
+      '<tbody>' +
+      '<tr><td>1</td><td>2</td></tr>' +
+      '<tr><td>2</td><td>3</td></tr>' +
+      '</tbody>' +
+      '</table>'
+    );
+
+    selectOne(editor, 'tr td:nth-child(2)');
+    editor.execCommand('mceTableCopyCol');
+    selectOne(editor, 'tr td:nth-child(1)');
+    editor.execCommand('mceTablePasteColBefore');
+
+    LegacyUnit.equal(
+      cleanTableHtml(editor.getContent()),
+
+      '<table>' +
+      '<colgroup><col /><col /><col /></colgroup>' +
+      '<tbody>' +
+      '<tr><td>2</td><td>1</td><td>2</td></tr>' +
+      '<tr><td>3</td><td>2</td><td>3</td></tr>' +
+      '</tbody>' +
+      '</table>'
+    );
+  });
+
+  suite.test('TestCase-TINY-6684: Table: mceTablePasteColAfter command with colgroups', (editor) => {
+    editor.setContent(
+      '<table>' +
+      '<colgroup><col><col><col></colgroup>' +
+      '<tbody>' +
+      '<tr><td>1</td><td>2</td><td>3</td></tr>' +
+      '<tr><td>2</td><td>3</td><td>4</td></tr>' +
+      '</tbody>' +
+      '</table>'
+    );
+
+    selectOne(editor, 'tr td:nth-child(1)');
+    editor.execCommand('mceTableCopyCol');
+    selectOne(editor, 'tr td:nth-child(2)');
+    editor.execCommand('mceTablePasteColAfter');
+
+    LegacyUnit.equal(
+      cleanTableHtml(editor.getContent()),
+
+      '<table>' +
+      '<colgroup><col /><col /><col /><col /></colgroup>' +
+      '<tbody>' +
+      '<tr><td>1</td><td>2</td><td>1</td><td>3</td></tr>' +
+      '<tr><td>2</td><td>3</td><td>2</td><td>4</td></tr>' +
+      '</tbody>' +
+      '</table>'
+    );
+  });
+
   TinyLoader.setupLight((editor, onSuccess, onFailure) => {
     Pipeline.async({}, Log.steps('TBA', 'Table: Test Clipboard', suite.toSteps(editor)), onSuccess, onFailure);
   }, {
@@ -433,6 +609,6 @@ UnitTest.asynctest('browser.tinymce.plugins.table.ClipboardTest', (success, fail
       '*': 'width,height,vertical-align,text-align,float,border-color,background-color,border,padding,border-spacing,border-collapse'
     },
     theme: 'silver',
-    base_url: '/project/tinymce/js/tinymce',
+    base_url: '/project/tinymce/js/tinymce'
   }, success, failure);
 });

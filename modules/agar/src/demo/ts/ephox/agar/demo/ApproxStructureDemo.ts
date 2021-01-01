@@ -1,19 +1,19 @@
+import { Class, Html, InsertAll, SugarElement } from '@ephox/sugar';
 import * as ApproxStructure from 'ephox/agar/api/ApproxStructure';
 import * as Assertions from 'ephox/agar/api/Assertions';
 import { Pipeline } from 'ephox/agar/api/Pipeline';
-import DemoContainer from 'ephox/agar/demo/DemoContainer';
-import { Class, Element, Html, InsertAll } from '@ephox/sugar';
+import * as DemoContainer from 'ephox/agar/demo/DemoContainer';
 
-export default <any> function () {
+export const demo = (): void => {
   DemoContainer.init(
     'Approx Structure',
-    function (success, failure) {
+    (success, failure) => {
 
-      const div = Element.fromTag('div');
+      const div = SugarElement.fromTag('div');
 
-      const p = Element.fromTag('p');
+      const p = SugarElement.fromTag('p');
 
-      const span = Element.fromTag('span');
+      const span = SugarElement.fromTag('span');
 
       InsertAll.append(div, [ p ]);
       InsertAll.append(p, [ span ]);
@@ -23,8 +23,8 @@ export default <any> function () {
       Pipeline.async({}, [
         Assertions.sAssertStructure(
           'Assert Structure example: ' + Html.getOuter(div),
-          ApproxStructure.build(function (s, str, arr) {
-            return s.element('div', {
+          ApproxStructure.build((s, str, arr) =>
+            s.element('div', {
               children: [
                 s.element('p', {
                   children: [
@@ -34,8 +34,7 @@ export default <any> function () {
                   ]
                 })
               ]
-            });
-          }),
+            })),
           div
         )
       ], success, failure);

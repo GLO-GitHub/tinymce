@@ -5,28 +5,33 @@
  * For commercial licenses see https://www.tiny.cloud/
  */
 
-import Events from '../api/Events';
-import VisualChars from './VisualChars';
+import { Cell } from '@ephox/katamari';
+import Editor from 'tinymce/core/api/Editor';
 
-const toggleVisualChars = function (editor, toggleState) {
-  const body = editor.getBody();
-  const selection = editor.selection;
-  let bookmark;
+import * as Events from '../api/Events';
+import * as VisualChars from './VisualChars';
 
-  toggleState.set(!toggleState.get());
+const applyVisualChars = (editor: Editor, toggleState: Cell<boolean>) => {
   Events.fireVisualChars(editor, toggleState.get());
 
-  bookmark = selection.getBookmark();
-
+  const body = editor.getBody();
   if (toggleState.get() === true) {
     VisualChars.show(editor, body);
   } else {
     VisualChars.hide(editor, body);
   }
-
-  selection.moveToBookmark(bookmark);
 };
 
-export default {
+// Toggle state and save selection bookmark before applying visualChars
+const toggleVisualChars = (editor: Editor, toggleState: Cell<boolean>) => {
+  toggleState.set(!toggleState.get());
+
+  const bookmark = editor.selection.getBookmark();
+  applyVisualChars(editor, toggleState);
+  editor.selection.moveToBookmark(bookmark);
+};
+
+export {
+  applyVisualChars,
   toggleVisualChars
 };

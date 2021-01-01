@@ -1,4 +1,4 @@
-import { Option } from '@ephox/katamari';
+import { Optional } from '@ephox/katamari';
 
 import * as Behaviour from '../../api/behaviour/Behaviour';
 import { AlloyComponent } from '../../api/component/ComponentApi';
@@ -6,15 +6,15 @@ import { TransitionRoute } from './TransitionApis';
 
 export interface TransitioningBehaviour extends Behaviour.AlloyBehaviour<TransitioningConfigSpec, TransitioningConfig> {
   config: (config: TransitioningConfigSpec) => Behaviour.NamedConfiguredBehaviour<TransitioningConfigSpec, TransitioningConfig>;
-  findRoute?: <T>(comp: AlloyComponent, route: TransitionRoute) => Option<T>;
-  disableTransition?: (comp: AlloyComponent) => void;
-  getCurrentRoute?: any;
-  jumpTo?: (comp: AlloyComponent, destination: string) => void;
-  progressTo?: (comp: AlloyComponent, destination: string) => void;
-  getState?: any;
-  createRoutes?: (route: TransitionRoute, transitions: TransitionPropertiesSpec) => TransitioningConfigSpec['routes'];
-  createBistate?: (first: string, second: string, transitions: TransitionPropertiesSpec) => TransitioningConfigSpec['routes'];
-  createTristate?: (first: string, second: string, third: string, transitions: TransitionPropertiesSpec) => TransitioningConfigSpec['routes'];
+  findRoute: (comp: AlloyComponent, route: TransitionRoute) => Optional<TransitionProperties>;
+  disableTransition: (comp: AlloyComponent) => void;
+  getCurrentRoute: (comp: AlloyComponent) => Optional<TransitionRoute>;
+  jumpTo: (comp: AlloyComponent, destination: string) => void;
+  progressTo: (comp: AlloyComponent, destination: string) => void;
+  getState: (comp: AlloyComponent) => Optional<string>;
+  createRoutes: (routes: Record<string, TransitionPropertiesSpec>) => TransitioningConfigSpec['routes'];
+  createBistate: (first: string, second: string, transitions: TransitionPropertiesSpec) => TransitioningConfigSpec['routes'];
+  createTristate: (first: string, second: string, third: string, transitions: TransitionPropertiesSpec) => TransitioningConfigSpec['routes'];
 }
 
 export interface TransitioningConfig extends Behaviour.BehaviourConfigDetail {
@@ -35,7 +35,7 @@ export interface TransitioningConfigSpec extends Behaviour.BehaviourConfigSpec {
   onFinish?: (comp: AlloyComponent, destination: string) => void;
 }
 export interface TransitionProperties {
-  transition: Option<{
+  transition: Optional<{
     property: string;
     transitionClass: string;
   }>;

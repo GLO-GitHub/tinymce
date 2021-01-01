@@ -1,6 +1,7 @@
-import { HTMLInputElement, File, Window, document, Event } from '@ephox/dom-globals';
-import { Cell, Option } from '@ephox/katamari';
-import { Step, GeneralSteps, Chain } from '@ephox/agar';
+import { Cell, Optional } from '@ephox/katamari';
+import { Chain } from '../api/Chain';
+import * as GeneralSteps from '../api/GeneralSteps';
+import { Step } from '../api/Step';
 import { createFileList } from './FileList';
 
 interface Props {
@@ -8,7 +9,7 @@ interface Props {
   click: () => void;
 }
 
-const inputPrototypeState = Cell(Option.none<Props>());
+const inputPrototypeState = Cell(Optional.none<Props>());
 
 const createChangeEvent = (win: Window): Event => {
   const event: any = document.createEvent('CustomEvent');
@@ -33,7 +34,7 @@ const cPatchInputElement = (files: File[]) => Chain.op<any>(() => {
     click: HTMLInputElement.prototype.click
   };
 
-  inputPrototypeState.set(Option.some(currentProps));
+  inputPrototypeState.set(Optional.some(currentProps));
 
   Object.defineProperty(HTMLInputElement.prototype, 'files', {
     get: () => createFileList(files)
@@ -51,21 +52,17 @@ const cUnpatchInputElement = Chain.op<any>(() => {
   });
 });
 
-const sRunOnPatchedFileInput = (files: File[], step: Step<any, any>) => {
-  return GeneralSteps.sequence([
-    Chain.asStep({}, [ cPatchInputElement(files) ]),
-    step,
-    Chain.asStep({}, [ cUnpatchInputElement ]),
-  ]);
-};
+const sRunOnPatchedFileInput = (files: File[], step: Step<any, any>): Step<any, any> => GeneralSteps.sequence([
+  Chain.asStep({}, [ cPatchInputElement(files) ]),
+  step,
+  Chain.asStep({}, [ cUnpatchInputElement ])
+]);
 
-const cRunOnPatchedFileInput = (files: File[], chain: Chain<any, any>) => {
-  return Chain.fromChains([
-    cPatchInputElement(files),
-    chain,
-    cUnpatchInputElement
-  ]);
-};
+const cRunOnPatchedFileInput = (files: File[], chain: Chain<any, any>): Chain<any, any> => Chain.fromChains([
+  cPatchInputElement(files),
+  chain,
+  cUnpatchInputElement
+]);
 
 export {
   sRunOnPatchedFileInput,

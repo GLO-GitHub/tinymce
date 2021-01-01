@@ -1,11 +1,12 @@
-import { Assertions, FocusTools, GeneralSteps, Keyboard, Keys, Logger, Mouse, Step, UiFinder, Waiter } from '@ephox/agar';
-import { UnitTest } from '@ephox/bedrock';
+import { Assertions, FocusTools, GeneralSteps, Keyboard, Keys, Logger, Mouse, Step, Touch, UiFinder, Waiter } from '@ephox/agar';
+import { UnitTest } from '@ephox/bedrock-client';
 import { Focus, Value } from '@ephox/sugar';
 
 import * as Behaviour from 'ephox/alloy/api/behaviour/Behaviour';
 import { Keying } from 'ephox/alloy/api/behaviour/Keying';
 import { Tabstopping } from 'ephox/alloy/api/behaviour/Tabstopping';
 import * as GuiFactory from 'ephox/alloy/api/component/GuiFactory';
+import * as GuiSetup from 'ephox/alloy/api/testhelpers/GuiSetup';
 import { Button } from 'ephox/alloy/api/ui/Button';
 import { Container } from 'ephox/alloy/api/ui/Container';
 import { ExpandableForm } from 'ephox/alloy/api/ui/ExpandableForm';
@@ -14,7 +15,6 @@ import { FormField } from 'ephox/alloy/api/ui/FormField';
 import { HtmlSelect } from 'ephox/alloy/api/ui/HtmlSelect';
 import { Input } from 'ephox/alloy/api/ui/Input';
 import * as TestForm from 'ephox/alloy/test/form/TestForm';
-import * as GuiSetup from 'ephox/alloy/api/testhelpers/GuiSetup';
 import * as PhantomSkipper from 'ephox/alloy/test/PhantomSkipper';
 import { FormParts } from 'ephox/alloy/ui/types/FormTypes';
 
@@ -23,70 +23,66 @@ UnitTest.asynctest('ExpandableFormTest', (success, failure) => {
   // Seems to have stopped working on phantomjs
   if (PhantomSkipper.skip()) { return success(); }
 
-  GuiSetup.setup((store, doc, body) => {
+  GuiSetup.setup((_store, _doc, _body) => {
 
-    const pMinimal = ExpandableForm.parts().minimal(
-      Form.sketch((parts: FormParts) => {
-        return {
-          dom: {
-            tag: 'div',
-            classes: [ 'minimal-form', 'form-section' ]
-          },
-          components: [
-            parts.field('form.ant', FormField.sketch({
-              uid: 'input-ant',
-              dom: {
-                tag: 'div'
-              },
-              components: [
-                FormField.parts().field({
-                  factory: Input,
-                  data: 'init',
-                  inputBehaviours: Behaviour.derive([
-                    Tabstopping.config({ })
-                  ])
-                }),
-                FormField.parts().label({ dom: { tag: 'label', innerHtml: 'a' }, components: [ ] })
-              ]
-            }))
-          ]
-        };
-      })
+    const pMinimal = ExpandableForm.parts.minimal(
+      Form.sketch((parts: FormParts) => ({
+        dom: {
+          tag: 'div',
+          classes: [ 'minimal-form', 'form-section' ]
+        },
+        components: [
+          parts.field('form.ant', FormField.sketch({
+            uid: 'input-ant',
+            dom: {
+              tag: 'div'
+            },
+            components: [
+              FormField.parts.field({
+                factory: Input,
+                data: 'init',
+                inputBehaviours: Behaviour.derive([
+                  Tabstopping.config({ })
+                ])
+              }),
+              FormField.parts.label({ dom: { tag: 'label', innerHtml: 'a' }, components: [ ] })
+            ]
+          }))
+        ]
+      }))
     );
 
-    const pExtra = ExpandableForm.parts().extra(
-      Form.sketch((parts: FormParts) => {
-        return {
-          dom: {
-            tag: 'div',
-            classes: [ 'extra-form', 'form-section' ]
-          },
-          components: [
-            Container.sketch({ dom: { styles: { height: '100px', width: '100px', background: 'green' } } }),
-            parts.field('form.bull', FormField.sketch({
-              uid: 'select-bull',
-              dom: {
-                tag: 'div'
-              },
-              components: [
-                FormField.parts().field({
-                  factory: HtmlSelect,
-                  selectBehaviours: Behaviour.derive([
-                    Tabstopping.config({ })
-                  ]),
-                  options: [
-                    { value: 'select-b-init', text: 'Select-b-init' },
-                    { value: 'select-b-set', text: 'Select-b-set' },
-                    { value: 'select-b-other', text: 'Select-b-other' }
-                  ]
-                }),
+    const pExtra = ExpandableForm.parts.extra(
+      Form.sketch((parts: FormParts) => ({
+        dom: {
+          tag: 'div',
+          classes: [ 'extra-form', 'form-section' ]
+        },
+        components: [
+          Container.sketch({ dom: { styles: { height: '100px', width: '100px', background: 'green' }}}),
+          parts.field('form.bull', FormField.sketch({
+            uid: 'select-bull',
+            dom: {
+              tag: 'div'
+            },
+            components: [
+              FormField.parts.field({
+                factory: HtmlSelect,
+                selectBehaviours: Behaviour.derive([
+                  Tabstopping.config({ })
+                ]),
+                options: [
+                  { value: 'select-b-init', text: 'Select-b-init' },
+                  { value: 'select-b-set', text: 'Select-b-set' },
+                  { value: 'select-b-other', text: 'Select-b-other' }
+                ]
+              }),
 
-                FormField.parts().label({ dom: { tag: 'label', innerHtml: 'a' }, components: [ ] })
-              ]
-            }))
-          ]
-        };
-      })
+              FormField.parts.label({ dom: { tag: 'label', innerHtml: 'a' }, components: [ ] })
+            ]
+          }))
+        ]
+      }))
     );
 
     const me = GuiFactory.build(
@@ -97,7 +93,7 @@ UnitTest.asynctest('ExpandableFormTest', (success, failure) => {
 
         components: [
           pMinimal,
-          ExpandableForm.parts().expander({
+          ExpandableForm.parts.expander({
             dom: {
               tag: 'button',
               innerHtml: '+',
@@ -115,7 +111,7 @@ UnitTest.asynctest('ExpandableFormTest', (success, failure) => {
               tag: 'button',
               innerHtml: 'Shrink!'
             },
-            action (button) {
+            action(_button) {
               ExpandableForm.collapseFormImmediately(me);
             },
             buttonBehaviours: Behaviour.derive([
@@ -123,7 +119,7 @@ UnitTest.asynctest('ExpandableFormTest', (success, failure) => {
             ])
           }),
 
-          ExpandableForm.parts().controls({
+          ExpandableForm.parts.controls({
             dom: {
               tag: 'div',
               classes: [ 'form-controls' ]
@@ -153,7 +149,7 @@ UnitTest.asynctest('ExpandableFormTest', (success, failure) => {
 
     return me;
 
-  }, (doc, body, gui, component, store) => {
+  }, (doc, _body, gui, component, _store) => {
     const helper = TestForm.helper(component);
 
     return [
@@ -186,7 +182,7 @@ UnitTest.asynctest('ExpandableFormTest', (success, failure) => {
         GeneralSteps.sequence([
           Step.sync(() => {
             const field = Form.getField(component, 'form.ant').getOrDie('Could not find field for ant');
-            Assertions.assertEq('Checking value', 'first.set', Value.get(field.element()));
+            Assertions.assertEq('Checking value', 'first.set', Value.get(field.element));
           })
         ])
       ),
@@ -196,7 +192,7 @@ UnitTest.asynctest('ExpandableFormTest', (success, failure) => {
         GeneralSteps.sequence([
           Step.sync(() => {
             const field = Form.getField(component, 'form.bull').getOrDie('Could not find field for bull');
-            Assertions.assertEq('Checking value', 'select-b-set', Value.get(field.element()));
+            Assertions.assertEq('Checking value', 'select-b-set', Value.get(field.element));
           })
         ])
       ),
@@ -216,7 +212,7 @@ UnitTest.asynctest('ExpandableFormTest', (success, failure) => {
       Keyboard.sKeydown(doc, Keys.enter(), {}),
       Logger.t(
         'Shrinking immediately should not cause any animation',
-        UiFinder.sNotExists(gui.element(), '.expandable-shrinking')
+        UiFinder.sNotExists(gui.element, '.expandable-shrinking')
       ),
       // Check immediately
       Keyboard.sKeydown(doc, Keys.tab(), {}),
@@ -244,22 +240,47 @@ UnitTest.asynctest('ExpandableFormTest', (success, failure) => {
 
           Waiter.sTryUntil(
             'Waiting until it has stopped growing',
-            UiFinder.sNotExists(gui.element(), '.expandable-growing')
+            UiFinder.sNotExists(gui.element, '.expandable-growing')
           ),
 
           Keyboard.sKeydown(doc, Keys.tab(), {}),
           FocusTools.sTryOnSelector('Focus should move onto select', doc, 'select'),
-          Mouse.sClickOn(gui.element(), '.test-expander-button'),
+
+          Keyboard.sKeydown(doc, Keys.tab(), { shiftKey: true }),
+          FocusTools.sTryOnSelector('Focus should move onto select', doc, '.test-expander-button'),
+          Keyboard.sKeydown(doc, Keys.enter(), {}),
 
           Waiter.sTryUntil(
             'Waiting until it has stopped shrinking',
-            UiFinder.sNotExists(gui.element(), '.expandable-shrinking'),
+            UiFinder.sNotExists(gui.element, '.expandable-shrinking'),
+            10,
+            10000
+          ),
+
+          Mouse.sClickOn(gui.element, '.test-expander-button'),
+
+          Waiter.sTryUntil(
+            'Waiting until it has stopped growing',
+            UiFinder.sNotExists(gui.element, '.expandable-growing')
+          ),
+
+          Step.async((next, die) => {
+            Focus.search(component.element).fold(() => {
+              die('The focus has not stayed in the form');
+            }, next);
+          }),
+
+          Touch.sTapOn(gui.element, '.test-expander-button'),
+
+          Waiter.sTryUntil(
+            'Waiting until it has stopped shrinking',
+            UiFinder.sNotExists(gui.element, '.expandable-shrinking'),
             10,
             10000
           ),
 
           Step.async((next, die) => {
-            Focus.search(component.element()).fold(() => {
+            Focus.search(component.element).fold(() => {
               die('The focus has not stayed in the form');
             }, next);
           })
@@ -269,10 +290,10 @@ UnitTest.asynctest('ExpandableFormTest', (success, failure) => {
       Step.sync(() => {
         ExpandableForm.expandForm(component);
       }),
-      UiFinder.sExists(gui.element(), '.expandable-growing'),
+      UiFinder.sExists(gui.element, '.expandable-growing'),
       Waiter.sTryUntil(
         'Waiting until it has stopped growing',
-        UiFinder.sNotExists(gui.element(), '.expandable-growing'),
+        UiFinder.sNotExists(gui.element, '.expandable-growing'),
         10,
         10000
       ),
@@ -280,10 +301,10 @@ UnitTest.asynctest('ExpandableFormTest', (success, failure) => {
       Step.sync(() => {
         ExpandableForm.collapseForm(component);
       }),
-      UiFinder.sExists(gui.element(), '.expandable-shrinking'),
+      UiFinder.sExists(gui.element, '.expandable-shrinking'),
       Waiter.sTryUntil(
         'Waiting until it has stopped shrinking',
-        UiFinder.sNotExists(gui.element(), '.expandable-shrinking'),
+        UiFinder.sNotExists(gui.element, '.expandable-shrinking'),
         10,
         10000
       ),

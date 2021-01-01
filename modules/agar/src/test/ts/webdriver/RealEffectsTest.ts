@@ -1,7 +1,6 @@
-import { UnitTest } from '@ephox/bedrock';
-import { document } from '@ephox/dom-globals';
+import { UnitTest } from '@ephox/bedrock-client';
 import { PlatformDetection } from '@ephox/sand';
-import { Class, Css, Element, Html, Insert, Remove } from '@ephox/sugar';
+import { Class, Css, Html, Insert, Remove, SugarElement } from '@ephox/sugar';
 import * as Assertions from 'ephox/agar/api/Assertions';
 import { Chain } from 'ephox/agar/api/Chain';
 import * as Guard from 'ephox/agar/api/Guard';
@@ -14,7 +13,7 @@ import * as UiControls from 'ephox/agar/api/UiControls';
 import * as UiFinder from 'ephox/agar/api/UiFinder';
 import * as Waiter from 'ephox/agar/api/Waiter';
 
-UnitTest.asynctest('Real Effects Test', function (success, failure) {
+UnitTest.asynctest('Real Effects Test', (success, failure) => {
 
   const platform = PlatformDetection.detect();
 
@@ -24,28 +23,28 @@ UnitTest.asynctest('Real Effects Test', function (success, failure) {
     return success();
   }
 
-  const head = Element.fromDom(document.head);
-  const body = Element.fromDom(document.body);
+  const head = SugarElement.fromDom(document.head);
+  const body = SugarElement.fromDom(document.body);
 
-  const container = Element.fromTag('div');
+  const container = SugarElement.fromTag('div');
 
-  const sCreateWorld = Step.sync(function () {
-    const input = Element.fromTag('input');
+  const sCreateWorld = Step.sync(() => {
+    const input = SugarElement.fromTag('input');
     Insert.append(container, input);
 
-    const css = Element.fromTag('style');
+    const css = SugarElement.fromTag('style');
     Html.set(css, 'button { border: 1px solid black; }\nbutton.test:hover { border: 1px solid white }');
     Insert.append(head, css);
 
-    const button = Element.fromTag('button');
+    const button = SugarElement.fromTag('button');
     Class.add(button, 'test');
     Html.set(button, 'Mouse over me');
     Insert.append(container, button);
     Insert.append(body, container);
   });
 
-  const sCheckInput = function (label, expected) {
-    return Chain.asStep(body, [
+  const sCheckInput = (label, expected) =>
+    Chain.asStep(body, [
       Chain.control(
         UiFinder.cFindIn('input'),
         Guard.addLogging(label + '\nlooking for input to check expected')
@@ -53,18 +52,16 @@ UnitTest.asynctest('Real Effects Test', function (success, failure) {
       UiControls.cGetValue,
       Assertions.cAssertEq(label + '\nChecking the input value', expected)
     ]);
-  };
 
-  const sCheckButtonBorder = function (label, expected) {
-    return Chain.asStep(body, [
+  const sCheckButtonBorder = (label, expected) =>
+    Chain.asStep(body, [
       UiFinder.cFindIn('button.test'),
-      Chain.mapper(function (button) {
+      Chain.mapper((button) => {
         const prop = platform.browser.isFirefox() || platform.browser.isEdge() || platform.browser.isIE() ? 'border-right-color' : 'border-color';
         return Css.get(button, prop);
       }),
       Assertions.cAssertEq(label + '\nChecking color of button border', expected)
     ]);
-  };
 
   Pipeline.async({}, [
     sCreateWorld,
@@ -109,7 +106,7 @@ UnitTest.asynctest('Real Effects Test', function (success, failure) {
       'Waiting for hovered state',
       sCheckButtonBorder('Checking hovered state of button border', 'rgb(255, 255, 255)')
     )
-  ], function () {
+  ], () => {
     Remove.remove(container);
     success();
   }, failure);

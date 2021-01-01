@@ -1,13 +1,16 @@
-import { Logger, Pipeline, Step, Keys, UiFinder, GeneralSteps, Waiter } from '@ephox/agar';
+import { GeneralSteps, Keys, Logger, Pipeline, Step, UiFinder, Waiter } from '@ephox/agar';
 import { TestHelpers } from '@ephox/alloy';
-import { UnitTest } from '@ephox/bedrock';
+import { UnitTest } from '@ephox/bedrock-client';
 import { Arr } from '@ephox/katamari';
-import { TinyLoader, TinyUi, TinyApis, TinyActions } from '@ephox/mcagar';
-import { Body } from '@ephox/sugar';
+import { TinyActions, TinyApis, TinyLoader, TinyUi } from '@ephox/mcagar';
+import { SugarBody } from '@ephox/sugar';
 import Editor from 'tinymce/core/api/Editor';
 import Promise from 'tinymce/core/api/util/Promise';
 import SilverTheme from 'tinymce/themes/silver/Theme';
-import { AutocompleterStructure, sAssertAutocompleterStructure, sWaitForAutocompleteToClose, sWaitForAutocompleteToOpen } from '../../../module/AutocompleterUtils';
+import { getGreenImageDataUrl } from '../../../module/Assets';
+import {
+  AutocompleterStructure, sAssertAutocompleterStructure, sWaitForAutocompleteToClose, sWaitForAutocompleteToOpen
+} from '../../../module/AutocompleterUtils';
 
 UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
   SilverTheme();
@@ -47,22 +50,20 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
           Step.wait(50),
           ...additionalContent ? [
             tinyApis.sExecCommand('mceInsertContent', additionalContent),
-            tinyActions.sContentKeypress(additionalContent.charCodeAt(additionalContent.length - 1), { }),
+            tinyActions.sContentKeypress(additionalContent.charCodeAt(additionalContent.length - 1), { })
           ] : [ ]
         ]);
       };
 
-      const sTestAutocompleter = (scenario: Scenario) => {
-        return GeneralSteps.sequence([
-          store.sClear,
-          sSetContentAndTrigger(scenario),
-          sWaitForAutocompleteToOpen,
-          sAssertAutocompleterStructure(scenario.structure),
-          scenario.choice,
-          sWaitForAutocompleteToClose,
-          scenario.assertion
-        ]);
-      };
+      const sTestAutocompleter = (scenario: Scenario) => GeneralSteps.sequence([
+        store.sClear,
+        sSetContentAndTrigger(scenario),
+        sWaitForAutocompleteToOpen,
+        sAssertAutocompleterStructure(scenario.structure),
+        scenario.choice,
+        sWaitForAutocompleteToClose,
+        scenario.assertion
+      ]);
 
       const sTestFirstAutocomplete = sTestAutocompleter({
         triggerChar: '+',
@@ -122,7 +123,7 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
         },
         choice: GeneralSteps.sequence([
           tinyActions.sContentKeydown(Keys.down(), { }),
-          tinyActions.sContentKeydown(Keys.enter(), { }),
+          tinyActions.sContentKeydown(Keys.enter(), { })
         ]),
         assertion: store.sAssertEq('Second action should fire', [ 'colon2:colon2-b' ])
       });
@@ -197,7 +198,7 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
           hasIcons: false,
           groups: [
             [
-              { title: 'equals sign', text: '<span class="tox-autocompleter-highlight">equals s</span>ign' },
+              { title: 'equals sign', text: '<span class="tox-autocompleter-highlight">equals s</span>ign' }
             ]
           ]
         },
@@ -211,8 +212,8 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
         triggerChar: '*',
         initialContent: '*<span data-mce-spelling="invalid">ha</span>p',
         cursorPos: {
-          elementPath: [0, 2],
-          offset: 1,
+          elementPath: [ 0, 2 ],
+          offset: 1
         },
         structure: {
           type: 'grid',
@@ -233,32 +234,84 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
 
       const sTestAutocompleteStartOfWord = GeneralSteps.sequence([
         store.sClear,
-        sSetContentAndTrigger({
-          triggerChar: '*',
-          initialContent: 'a*',
-          additionalContent: 'bc'
-        }),
-        // Can't wait for anything to change, so just wait for a prefixed amount of time
-        Step.wait(500),
-        Step.label('Check the autocompleter does not appear', UiFinder.sNotExists(Body.body(), '.tox-autocompleter')),
-        sSetContentAndTrigger({
-          triggerChar: '*',
-          additionalContent: 'bc'
-        }),
-        tinyUi.sWaitForPopup('wait for autocompleter to appear', '.tox-autocompleter div[role="menu"]'),
-        sAssertAutocompleterStructure({
-          type: 'grid',
-          groups: [
-            [
-              { title: 'asterisk-a', icon: '*' },
-              { title: 'asterisk-b', icon: '*' },
-              { title: 'asterisk-c', icon: '*' },
-              { title: 'asterisk-d', icon: '*' }
+        Step.label('No spaces', GeneralSteps.sequence([
+          sSetContentAndTrigger({
+            triggerChar: '*',
+            initialContent: 'a*',
+            additionalContent: 'bc'
+          }),
+          // Can't wait for anything to change, so just wait for a prefixed amount of time
+          Step.wait(500),
+          Step.label('Check the autocompleter does not appear', UiFinder.sNotExists(SugarBody.body(), '.tox-autocompleter')),
+          sSetContentAndTrigger({
+            triggerChar: '*',
+            additionalContent: 'bc'
+          }),
+          tinyUi.sWaitForPopup('wait for autocompleter to appear', '.tox-autocompleter div[role="menu"]'),
+          sAssertAutocompleterStructure({
+            type: 'grid',
+            groups: [
+              [
+                { title: 'asterisk-a', icon: '*' },
+                { title: 'asterisk-b', icon: '*' },
+                { title: 'asterisk-c', icon: '*' },
+                { title: 'asterisk-d', icon: '*' }
+              ]
             ]
-          ]
-        }),
-        tinyActions.sContentKeydown(Keys.enter(), { }),
-        sWaitForAutocompleteToClose
+          }),
+          tinyActions.sContentKeydown(Keys.enter(), { }),
+          sWaitForAutocompleteToClose
+        ])),
+        Step.label('Immediately after a br element', GeneralSteps.sequence([
+          sSetContentAndTrigger({
+            initialContent: 'First line<br>*',
+            triggerChar: '*',
+            additionalContent: 'bc',
+            cursorPos: {
+              elementPath: [ 0, 2 ],
+              offset: 1
+            }
+          }),
+          tinyUi.sWaitForPopup('wait for autocompleter to appear', '.tox-autocompleter div[role="menu"]'),
+          sAssertAutocompleterStructure({
+            type: 'grid',
+            groups: [
+              [
+                { title: 'asterisk-a', icon: '*' },
+                { title: 'asterisk-b', icon: '*' },
+                { title: 'asterisk-c', icon: '*' },
+                { title: 'asterisk-d', icon: '*' }
+              ]
+            ]
+          }),
+          tinyActions.sContentKeydown(Keys.enter(), { }),
+          sWaitForAutocompleteToClose
+        ])),
+        Step.label('Immediately after a ce=false element', GeneralSteps.sequence([
+          sSetContentAndTrigger({
+            initialContent: 'Some content <span contenteditable="false">uneditable content</span>*',
+            triggerChar: '*',
+            additionalContent: 'bc',
+            cursorPos: {
+              elementPath: [ 0, 2 ],
+              offset: 1
+            }
+          }),
+          tinyUi.sWaitForPopup('wait for autocompleter to appear', '.tox-autocompleter div[role="menu"]'),
+          sAssertAutocompleterStructure({
+            type: 'grid',
+            groups: [
+              [
+                { title: 'asterisk-a', icon: '*' },
+                { title: 'asterisk-b', icon: '*' },
+                { title: 'asterisk-c', icon: '*' },
+                { title: 'asterisk-d', icon: '*' }
+              ]
+            ]
+          }),
+          tinyActions.sContentKeydown(Keys.enter(), { }),
+          sWaitForAutocompleteToClose
+        ]))
       ]);
 
       const sTestAutocompleteActivation = GeneralSteps.sequence([
@@ -269,7 +322,7 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
         }),
         // Can't wait for anything to change, so just wait for a prefixed amount of time
         Step.wait(500),
-        Step.label('Check the autocompleter does not appear', UiFinder.sNotExists(Body.body(), '.tox-autocompleter')),
+        Step.label('Check the autocompleter does not appear', UiFinder.sNotExists(SugarBody.body(), '.tox-autocompleter')),
         sSetContentAndTrigger({
           triggerChar: '=',
           initialContent: 'test=t'
@@ -324,22 +377,72 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
         sWaitForAutocompleteToClose
       ]);
 
-      Pipeline.async({ }, Logger.ts(
-          'Trigger autocompleter',
-          [
-            tinyApis.sFocus,
-            Logger.t('Checking first autocomplete (columns = 1) trigger: "+"', sTestFirstAutocomplete),
-            Logger.t('Checking first autocomplete (columns = 1) trigger: "+"', sTestFirstAutocomplete2),
-            Logger.t('Checking second autocomplete (columns = 2), two sources, trigger ":"', sTestSecondAutocomplete),
-            Logger.t('Checking third autocomplete (columns = auto) trigger: "~"', sTestThirdAutocomplete),
-            Logger.t('Checking forth autocomplete, (columns = 1), trigger: "!", no icons', sTestFourthAutocomplete),
-            Logger.t('Checking fifth autocomplete, trigger: "=", custom activation check', sTestFifthAutocomplete),
-            Logger.t('Checking sixth autocomplete, (columns = 1), trigger: "#", content has spaces', sTestSixthAutocomplete),
-            Logger.t('Checking autocomplete activation based on content', sTestAutocompleteActivation),
-            Logger.t('Checking autocomplete start of word detection', sTestAutocompleteStartOfWord),
-            Logger.t('Checking autocomplete over fragmented text', sTestAutocompleteFragmentedText)
+      const sTextAutocompleteWithCardItems = sTestAutocompleter({
+        triggerChar: '€',
+        initialContent: '€equ',
+        additionalContent: 'als s',
+        structure: {
+          type: 'list',
+          groups: [
+            [
+              (s, str, arr) => s.element('div', {
+                classes: [ arr.has('tox-collection__item') ],
+                attrs: {
+                  title: str.is('equals sign')
+                },
+                children: [
+                  s.element('div', {
+                    classes: [
+                      arr.has('tox-collection__item-container--row'),
+                      arr.has('tox-collection__item-container')
+                    ],
+                    children: [
+                      s.element('img', {
+                        classes: [ arr.has('my_autocompleter_avatar_class') ]
+                      }),
+                      s.element('div', {
+                        classes: [
+                          arr.has('tox-collection__item-container--column'),
+                          arr.has('tox-collection__item-container--align-right'),
+                          arr.has('tox-collection__item-container--valign-bottom')
+                        ],
+                        children: [
+                          s.element('div', {
+                            classes: [ arr.has('my_text_class') ],
+                            html: str.is('<span class="tox-autocompleter-highlight">equals s</span>ign')
+                          })
+                        ]
+                      })
+                    ]
+                  })
+                ]
+              })
+            ]
           ]
-        ), onSuccess, onFailure);
+        },
+        choice: GeneralSteps.sequence([
+          tinyActions.sContentKeydown(Keys.enter(), { })
+        ]),
+        assertion: store.sAssertEq('Euro-= should fire', [ 'euro:AutocompleterContents->onAction', 'euro:euro-=' ])
+      });
+
+      Pipeline.async({ }, Logger.ts(
+        'Trigger autocompleter',
+        [
+          tinyApis.sFocus(),
+          Logger.t('Checking first autocomplete (columns = 1) trigger: "+"', sTestFirstAutocomplete),
+          Logger.t('Checking first autocomplete (columns = 1) trigger: "+"', sTestFirstAutocomplete2),
+          Logger.t('Checking second autocomplete (columns = 2), two sources, trigger ":"', sTestSecondAutocomplete),
+          Logger.t('Checking third autocomplete (columns = auto) trigger: "~"', sTestThirdAutocomplete),
+          Logger.t('Checking forth autocomplete, (columns = 1), trigger: "!", no icons', sTestFourthAutocomplete),
+          Logger.t('Checking fifth autocomplete, trigger: "=", custom activation check', sTestFifthAutocomplete),
+          Logger.t('Checking sixth autocomplete, (columns = 1), trigger: "#", content has spaces', sTestSixthAutocomplete),
+          Logger.t('Checking autocomplete activation based on content', sTestAutocompleteActivation),
+          Logger.t('Checking autocomplete start of word detection', sTestAutocompleteStartOfWord),
+          Logger.t('Checking autocomplete over fragmented text', sTestAutocompleteFragmentedText),
+          Logger.t('Checking autocomplete over fragmented text', sTextAutocompleteWithCardItems)
+        ]
+      ), onSuccess, onFailure);
     },
     {
       theme: 'silver',
@@ -349,17 +452,15 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
           ch: '+',
           minChars: 0,
           columns: 1,
-          fetch: (pattern, maxResults) => {
-            return new Promise((resolve) => {
-              resolve(
-                Arr.map([ 'aA', 'bB', 'cC', 'dD' ], (letter) => ({
-                  value: `plus-${letter}`,
-                  text: `p-${letter}`,
-                  icon: '+'
-                }))
-              );
-            });
-          },
+          fetch: (_pattern, _maxResults) => new Promise((resolve) => {
+            resolve(
+              Arr.map([ 'aA', 'bB', 'cC', 'dD' ], (letter) => ({
+                value: `plus-${letter}`,
+                text: `p-${letter}`,
+                icon: '+'
+              }))
+            );
+          }),
           onAction: (autocompleteApi, rng, value) => {
             ed.selection.setRng(rng);
             ed.insertContent(value);
@@ -371,18 +472,16 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
           ch: ':',
           minChars: 0,
           columns: 2,
-          fetch: (pattern, maxResults) => {
-            return new Promise((resolve) => {
-              resolve(
-                Arr.map([ 'a' ], (letter) => ({
-                  value: `colon1-${letter}`,
-                  text: `c1-${letter}`,
-                  icon: ':'
-                }))
-              );
-            });
-          },
-          onAction: (autocompleteApi, rng, value) => {
+          fetch: (_pattern, _maxResults) => new Promise((resolve) => {
+            resolve(
+              Arr.map([ 'a' ], (letter) => ({
+                value: `colon1-${letter}`,
+                text: `c1-${letter}`,
+                icon: ':'
+              }))
+            );
+          }),
+          onAction: (autocompleteApi, _rng, value) => {
             store.adder('colon1:' + value)();
             autocompleteApi.hide();
           }
@@ -392,18 +491,16 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
           ch: ':',
           minChars: 0,
           columns: 2,
-          fetch: (pattern, maxResults) => {
-            return new Promise((resolve) => {
-              resolve(
-                Arr.map([ 'a', 'b' ], (letter) => ({
-                  value: `colon2-${letter}`,
-                  text: `c2-${letter}`,
-                  icon: ':'
-                }))
-              );
-            });
-          },
-          onAction: (autocompleteApi, rng, value) => {
+          fetch: (_pattern, _maxResults) => new Promise((resolve) => {
+            resolve(
+              Arr.map([ 'a', 'b' ], (letter) => ({
+                value: `colon2-${letter}`,
+                text: `c2-${letter}`,
+                icon: ':'
+              }))
+            );
+          }),
+          onAction: (autocompleteApi, _rng, value) => {
             store.adder('colon2:' + value)();
             autocompleteApi.hide();
           }
@@ -413,18 +510,16 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
           ch: '~',
           minChars: 0,
           columns: 'auto',
-          fetch: (pattern, maxResults) => {
-            return new Promise((resolve) => {
-              resolve(
-                Arr.map([ 'a', 'b', 'c', 'd' ], (letter) => ({
-                  value: `tilde-${letter}`,
-                  text: `t-${letter}`,
-                  icon: '~'
-                }))
-              );
-            });
-          },
-          onAction: (autocompleteApi, rng, value) => {
+          fetch: (_pattern, _maxResults) => new Promise((resolve) => {
+            resolve(
+              Arr.map([ 'a', 'b', 'c', 'd' ], (letter) => ({
+                value: `tilde-${letter}`,
+                text: `t-${letter}`,
+                icon: '~'
+              }))
+            );
+          }),
+          onAction: (autocompleteApi, _rng, value) => {
             store.adder('tilde:' + value)();
             autocompleteApi.hide();
           }
@@ -434,17 +529,15 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
           ch: '!',
           minChars: 0,
           columns: 1,
-          fetch: (pattern, maxResults) => {
-            return new Promise((resolve) => {
-              resolve(
-                Arr.map([ 'a', 'b', 'c', 'd' ], (letter) => ({
-                  value: `exclamation-${letter}`,
-                  text: `exclamation-${letter}`
-                }))
-              );
-            });
-          },
-          onAction: (autocompleteApi, rng, value) => {
+          fetch: (_pattern, _maxResults) => new Promise((resolve) => {
+            resolve(
+              Arr.map([ 'a', 'b', 'c', 'd' ], (letter) => ({
+                value: `exclamation-${letter}`,
+                text: `exclamation-${letter}`
+              }))
+            );
+          }),
+          onAction: (autocompleteApi, _rng, value) => {
             store.adder('exclamation:' + value)();
             autocompleteApi.hide();
           }
@@ -454,22 +547,19 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
           ch: '=',
           minChars: 1,
           columns: 'auto',
-          matches: (rng, text, pattern) => {
+          matches: (rng, text, _pattern) =>
             // Check the '=' is in the middle of a word
-            return rng.startOffset !== 0 && !/\s/.test(text.charAt(rng.startOffset - 1));
-          },
-          fetch: (pattern, maxResults) => {
-            return new Promise((resolve) => {
-              const filteredItems = Arr.filter([ 'two', 'three' ], (number) => number.indexOf(pattern) !== -1);
-              resolve(
-                Arr.map(filteredItems, (number) => ({
-                  value: `${number}`,
-                  text: `${number}`,
-                  icon: '='
-                }))
-              );
-            });
-          },
+            rng.startOffset !== 0 && !/\s/.test(text.charAt(rng.startOffset - 1)),
+          fetch: (pattern, _maxResults) => new Promise((resolve) => {
+            const filteredItems = Arr.filter([ 'two', 'three' ], (number) => number.indexOf(pattern) !== -1);
+            resolve(
+              Arr.map(filteredItems, (number) => ({
+                value: `${number}`,
+                text: `${number}`,
+                icon: '='
+              }))
+            );
+          }),
           onAction: (autocompleteApi, rng, value) => {
             ed.selection.setRng(rng);
             ed.insertContent('=' + value);
@@ -481,17 +571,15 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
           ch: '*',
           minChars: 2,
           columns: 'auto',
-          fetch: (pattern, maxResults) => {
-            return new Promise((resolve) => {
-              resolve(
-                Arr.map([ 'a', 'b', 'c', 'd' ], (letter) => ({
-                  value: `asterisk-${letter}`,
-                  text: `asterisk-${letter}`,
-                  icon: '*'
-                }))
-              );
-            });
-          },
+          fetch: (_pattern, _maxResults) => new Promise((resolve) => {
+            resolve(
+              Arr.map([ 'a', 'b', 'c', 'd' ], (letter) => ({
+                value: `asterisk-${letter}`,
+                text: `asterisk-${letter}`,
+                icon: '*'
+              }))
+            );
+          }),
           onAction: (autocompleteApi, rng, value) => {
             store.adder('asterisk:' + value)();
             ed.selection.setRng(rng);
@@ -504,11 +592,11 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
           ch: '#',
           minChars: 1,
           columns: 1,
-          fetch: (pattern, maxResults) => {
+          fetch: (pattern, _maxResults) => {
             const filteredItems = Arr.filter([
               { text: 'dollar sign', value: '$' },
               { text: 'equals sign', value: '=' },
-              { text: 'some name', value: '`'}
+              { text: 'some name', value: '`' }
             ], (item) => item.text.indexOf(pattern) !== -1);
             return new Promise((resolve) => {
               resolve(
@@ -521,6 +609,59 @@ UnitTest.asynctest('Editor Autocompleter test', (success, failure) => {
           },
           onAction: (autocompleteApi, rng, value) => {
             store.adder('hash:' + value)();
+            ed.selection.setRng(rng);
+            ed.insertContent(value);
+            autocompleteApi.hide();
+          }
+        });
+
+        ed.ui.registry.addAutocompleter('Card items', {
+          ch: '€',
+          minChars: 1,
+          columns: 1,
+          highlightOn: [ 'my_text_to_highlight' ],
+          fetch: (pattern, _maxResults) => {
+            const filteredItems = Arr.filter([
+              { text: 'equals sign', value: '=' },
+              { text: 'plus sign', value: '+' }
+            ], (item) => item.text.indexOf(pattern) !== -1);
+            return new Promise((resolve) => {
+              resolve(
+                Arr.map(filteredItems, (item) => ({
+                  value: `euro-${item.value}`,
+                  ariaLabel: item.text,
+                  type: 'cardmenuitem',
+                  label: item.text,
+                  onAction: () => {
+                    store.add('euro:AutocompleterContents->onAction');
+                  },
+                  items: [
+                    {
+                      type: 'cardimage',
+                      src: getGreenImageDataUrl(),
+                      classes: [ 'my_autocompleter_avatar_class' ]
+                    },
+                    {
+                      type: 'cardcontainer',
+                      direction: 'vertical',
+                      align: 'right',
+                      valign: 'bottom',
+                      items: [
+                        {
+                          type: 'cardtext',
+                          text: item.text,
+                          classes: [ 'my_text_class' ],
+                          name: 'my_text_to_highlight'
+                        }
+                      ]
+                    }
+                  ]
+                }))
+              );
+            });
+          },
+          onAction: (autocompleteApi, rng, value) => {
+            store.adder('euro:' + value)();
             ed.selection.setRng(rng);
             ed.insertContent(value);
             autocompleteApi.hide();

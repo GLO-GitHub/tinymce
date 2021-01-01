@@ -1,13 +1,12 @@
-import { Pipeline, RealMouse, Waiter, Chain, Log } from '@ephox/agar';
-import { UnitTest } from '@ephox/bedrock';
+import { Log, Pipeline, RealMouse, Waiter } from '@ephox/agar';
+import { UnitTest } from '@ephox/bedrock-client';
 import { TinyApis, TinyLoader, TinyUi } from '@ephox/mcagar';
 import { PlatformDetection } from '@ephox/sand';
 
 import PastePlugin from 'tinymce/plugins/paste/Plugin';
 import Theme from 'tinymce/themes/silver/Theme';
-import { window } from '@ephox/dom-globals';
 
-UnitTest.asynctest('tinymce.plugins.paste.webdriver.CutTest', (success, failure) => {
+UnitTest.asynctest('webdriver.tinymce.plugins.paste.CutTest', (success, failure) => {
 
   Theme();
   PastePlugin();
@@ -23,18 +22,16 @@ UnitTest.asynctest('tinymce.plugins.paste.webdriver.CutTest', (success, failure)
     const api = TinyApis(editor);
     const ui = TinyUi(editor);
 
-    // Cut doesn't seem to work in webdriver mode on ie, safari has broken webdriver elementClick in 13.0.1, edge fails if it's not observed
-    Pipeline.async({}, (platform.browser.isIE() || platform.browser.isSafari() || platform.browser.isEdge()) ? [] :
-    Log.steps('TBA', 'Paste: Set and select content, cut using edit menu and assert cut content', [
-      api.sSetContent('<p>abc</p>'),
-      api.sSetSelection([0, 0], 1, [0, 0], 2),
-      ui.sClickOnMenu('Click Edit menu', 'button:contains("Edit")'),
-      Chain.asStep({}, [
-        ui.cWaitForUi('Wait for menu item', '[role="menuitem"]:contains("Cut")'),
-        RealMouse.cClick()
-      ]),
-      Waiter.sTryUntil('Cut is async now, so need to wait for content', api.sAssertContent('<p>ac</p>'))
-    ]), onSuccess, onFailure);
+    // Cut doesn't seem to work in webdriver mode on ie
+    Pipeline.async({}, platform.browser.isIE() ? [] :
+      Log.steps('TBA', 'Paste: Set and select content, cut using edit menu and assert cut content', [
+        api.sSetContent('<p>abc</p>'),
+        api.sSetSelection([ 0, 0 ], 1, [ 0, 0 ], 2),
+        ui.sClickOnMenu('Click Edit menu', 'button:contains("Edit")'),
+        ui.sWaitForUi('Wait for dropdown', '*[role="menu"]'),
+        RealMouse.sClickOn('div[title="Cut"]'),
+        Waiter.sTryUntil('Cut is async now, so need to wait for content', api.sAssertContent('<p>ac</p>'))
+      ]), onSuccess, onFailure);
   }, {
     base_url: '/project/tinymce/js/tinymce',
     theme: 'silver',

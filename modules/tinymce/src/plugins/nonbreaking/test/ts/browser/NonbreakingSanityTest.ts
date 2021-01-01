@@ -1,5 +1,6 @@
-import { ApproxStructure, Pipeline, Log } from '@ephox/agar';
-import { UnitTest } from '@ephox/bedrock';
+import { ApproxStructure, Log, Pipeline } from '@ephox/agar';
+import { UnitTest } from '@ephox/bedrock-client';
+import { Unicode } from '@ephox/katamari';
 import { TinyApis, TinyLoader, TinyUi } from '@ephox/mcagar';
 
 import NonbreakingPlugin from 'tinymce/plugins/nonbreaking/Plugin';
@@ -24,10 +25,10 @@ UnitTest.asynctest('browser.tinymce.plugins.nonbreaking.NonbreakingSanityTest', 
                 s.element('span', {
                   classes: [ arr.has('mce-nbsp-wrap') ],
                   children: [
-                    s.text(str.is('\u00a0'))
+                    s.text(str.is(Unicode.nbsp))
                   ]
                 }),
-                s.text(str.is('\uFEFF'))
+                s.text(str.is(Unicode.zeroWidth))
               ]
             })
           ]

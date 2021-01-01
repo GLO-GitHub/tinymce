@@ -1,8 +1,7 @@
-// tslint:disable:no-console
+/* eslint-disable no-console */
 
-import { console } from '@ephox/dom-globals';
-import Delay from 'tinymce/core/api/util/Delay';
 import DomQuery from 'tinymce/core/api/dom/DomQuery';
+import Delay from 'tinymce/core/api/util/Delay';
 
 declare let tinymce: any;
 
@@ -16,7 +15,7 @@ $(
   '<p><img src="' + imgSrc + '" style="width: 20%">' +
   '<p><img src="' + imgSrc + '">' +
   '<p><img src="http://moxiecode.cachefly.net/tinymce/v9/images/logo.png">' +
-  '</textarea>',
+  '</textarea>'
 ).appendTo('#ephox-ui');
 
 tinymce.init({
